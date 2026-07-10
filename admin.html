@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AutoValuate — Admin Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Oswald:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#0A0A0C;
+    --paper-raised:#141519;
+    --paper-raised-2:#1C1D22;
+    --ink:#F2EEE4;
+    --steel:#95969D;
+    --line:rgba(242,238,228,0.12);
+    --brass:#CFA83D;
+    --brass-dim:#A6842B;
+    --positive:#5FAE83;
+    --negative:#D2695D;
+    --shadow: 0 24px 60px rgba(0,0,0,0.55), 0 4px 16px rgba(0,0,0,0.4);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);color:var(--ink);font-family:'IBM Plex Sans',sans-serif;
+    min-height:100vh;
+  }
+  ::-webkit-scrollbar{width:8px;height:8px;}
+  ::-webkit-scrollbar-thumb{background:var(--paper-raised-2);border-radius:4px;}
+  .hidden{display:none !important;}
+
+  button{
+    font-family:'Oswald',sans-serif;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;font-size:12px;
+    background:var(--ink);color:#141519;border:1px solid var(--ink);padding:11px 20px;border-radius:2px;cursor:pointer;
+    transition:background .2s, color .2s, transform .08s, box-shadow .2s, border-color .2s;
+  }
+  button:hover{background:var(--brass);border-color:var(--brass);box-shadow:0 4px 16px rgba(207,168,61,0.25);}
+  button:active{transform:translateY(1px) scale(0.98);}
+  button.secondary{background:transparent;color:var(--steel);border:1px solid var(--line);}
+  button.secondary:hover{background:transparent;color:var(--ink);border-color:var(--ink);box-shadow:none;}
+  button.danger{background:transparent;color:var(--negative);border:1px solid rgba(210,105,93,0.4);}
+  button.danger:hover{background:var(--negative);color:#141519;border-color:var(--negative);}
+  button:disabled{opacity:0.35;cursor:not-allowed;}
+
+  input[type=text], input[type=password], select{
+    width:100%;padding:11px 14px;border:1.5px solid var(--line);border-radius:3px;
+    font-family:'IBM Plex Sans',sans-serif;font-size:14px;background:var(--paper-raised-2);color:var(--ink);
+    transition:border-color .2s;
+  }
+  input:focus, select:focus{outline:none;border-color:var(--brass);}
+  label{display:block;font-size:10.5px;font-weight:500;color:var(--steel);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;}
+  .field{margin-bottom:16px;}
+
+  @keyframes fadeSlideUp{ from{opacity:0; transform:translateY(12px);} to{opacity:1; transform:translateY(0);} }
+  @keyframes popIn{ from{opacity:0; transform:scale(0.97);} to{opacity:1; transform:scale(1);} }
+  @keyframes spin{ to{transform:rotate(360deg);} }
+  @keyframes beamSweep{
+    0%{transform:translateX(-15%) rotate(0deg);}
+    50%{transform:translateX(15%) rotate(1.2deg);}
+    100%{transform:translateX(-15%) rotate(0deg);}
+  }
+
+  /* ============ LOGIN GATE ============ */
+  .login-gate{
+    position:fixed;inset:0;z-index:9999;overflow:hidden;
+    display:flex;align-items:center;justify-content:center;padding:24px;
+    background:radial-gradient(ellipse at 50% 30%, #1a1b20 0%, #0a0a0c 65%);
+  }
+  .login-gate::before,.login-gate::after{
+    content:'';position:absolute;top:-20%;width:160%;height:220%;
+    background:linear-gradient(75deg, transparent 46%, rgba(207,168,61,0.06) 49.5%, rgba(207,168,61,0.11) 50%, rgba(207,168,61,0.06) 50.5%, transparent 54%);
+    animation:beamSweep 9s ease-in-out infinite;pointer-events:none;
+  }
+  .login-gate::before{left:-60%;}
+  .login-gate::after{left:-30%;animation-delay:3.2s;opacity:0.6;}
+  .login-card{
+    position:relative;z-index:1;width:100%;max-width:380px;
+    background:var(--paper-raised);border:1px solid var(--line);border-radius:4px;
+    padding:40px 34px 32px;box-shadow:var(--shadow);
+    animation:fadeSlideUp .5s cubic-bezier(.2,.8,.2,1) both;
+  }
+  .login-card .lg-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:3px;text-transform:uppercase;color:var(--brass);text-align:center;margin-bottom:14px;}
+  .login-card h1{font-family:'Bodoni Moda',serif;font-style:italic;font-weight:500;font-size:26px;text-align:center;margin:0 0 8px;color:var(--ink);}
+  .login-card .lg-sub{text-align:center;font-size:13px;color:var(--steel);margin:0 0 28px;}
+  .lg-field{margin-bottom:18px;position:relative;}
+  .lg-field label{margin-bottom:8px;}
+  .lg-field input{
+    width:100%;padding:11px 38px 11px 4px;border:none;border-bottom:1.5px solid var(--line);border-radius:0;
+    font-family:'IBM Plex Sans',sans-serif;font-size:14.5px;background:transparent;color:var(--ink);
+  }
+  .lg-field input:focus{outline:none;border-color:var(--brass);}
+  .lg-field.error input{border-color:var(--negative);}
+  .lg-error-msg{display:none;font-size:11.5px;color:var(--negative);margin-top:6px;font-family:'IBM Plex Mono',monospace;}
+  .lg-field.error .lg-error-msg{display:block;}
+  .lg-toggle-eye{position:absolute;right:2px;top:33px;background:none;border:none;cursor:pointer;color:var(--steel);padding:4px;display:flex;}
+  .lg-toggle-eye:hover{color:var(--ink);}
+  .lg-toggle-eye svg{width:17px;height:17px;}
+  .lg-btn{width:100%;padding:13px;}
+  .lg-btn .lg-spinner{display:none;width:15px;height:15px;border:2px solid rgba(20,21,25,0.3);border-top-color:#141519;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto;}
+  .lg-btn.loading span{display:none;}
+  .lg-btn.loading .lg-spinner{display:block;}
+
+  /* ============ ADMIN SHELL ============ */
+  .admin-shell{display:flex;min-height:100vh;}
+
+  .sidebar{
+    width:230px;flex-shrink:0;background:var(--paper-raised);border-right:1px solid var(--line);
+    display:flex;flex-direction:column;padding:24px 0;position:sticky;top:0;height:100vh;
+  }
+  .sidebar .brandmark{
+    font-family:'Oswald',sans-serif;font-weight:600;font-size:15px;letter-spacing:2.5px;text-transform:uppercase;
+    padding:0 22px 20px;margin-bottom:14px;border-bottom:1px solid var(--line);
+  }
+  .sidebar .brandmark span{color:var(--brass);}
+  .sidebar .badge{
+    font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--brass);letter-spacing:1.5px;
+    display:block;margin-top:4px;text-transform:uppercase;
+  }
+  .nav-item{
+    display:flex;align-items:center;gap:12px;padding:13px 22px;color:var(--steel);cursor:pointer;
+    font-size:13.5px;font-weight:500;border-left:2px solid transparent;transition:all .2s ease;
+  }
+  .nav-item svg{width:16px;height:16px;flex-shrink:0;}
+  .nav-item:hover{color:var(--ink);background:rgba(255,255,255,0.02);}
+  .nav-item.active{color:var(--brass);border-left-color:var(--brass);background:rgba(207,168,61,0.06);}
+  .nav-spacer{flex:1;}
+  .nav-item.logout{color:var(--negative);margin-top:auto;}
+  .nav-item.logout:hover{color:#E7A79E;}
+
+  .main{flex:1;padding:34px 40px;max-width:1180px;}
+  .page-head{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:14px;}
+  .page-head h1{font-family:'Bodoni Moda',serif;font-style:italic;font-weight:500;font-size:30px;margin:0;}
+  .page-head p{color:var(--steel);font-size:13.5px;margin:6px 0 0;}
+
+  .section{animation:fadeSlideUp .35s cubic-bezier(.2,.8,.2,1) both;}
+
+  /* Stat cards */
+  .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:32px;}
+  @media (max-width:900px){.stat-grid{grid-template-columns:repeat(2,1fr);}}
+  .stat-card{
+    background:var(--paper-raised);border:1px solid var(--line);border-radius:4px;padding:20px 22px;
+    animation:popIn .4s cubic-bezier(.2,.8,.2,1) both;transition:border-color .2s, transform .2s;
+  }
+  .stat-card:hover{border-color:rgba(207,168,61,0.3);transform:translateY(-2px);}
+  .stat-card .label{font-size:10.5px;text-transform:uppercase;color:var(--steel);letter-spacing:1.2px;font-weight:600;}
+  .stat-card .value{font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:26px;margin-top:8px;color:var(--brass);}
+
+  .card{
+    background:var(--paper-raised);border:1px solid var(--line);border-radius:4px;padding:24px 26px;margin-bottom:20px;
+  }
+  .card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px;}
+  .card-head h2{font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:var(--brass);margin:0;}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th,td{text-align:left;padding:12px 10px;border-bottom:1px solid var(--line);}
+  th{font-family:'IBM Plex Mono',monospace;font-size:10.5px;text-transform:uppercase;color:var(--steel);letter-spacing:1px;}
+  tbody tr{animation:fadeSlideUp .3s cubic-bezier(.2,.8,.2,1) both;}
+  tbody tr:hover{background:rgba(255,255,255,0.02);}
+  td.num{font-family:'IBM Plex Mono',monospace;}
+
+  .status-badge{
+    display:inline-block;padding:3px 10px;border-radius:20px;font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;text-transform:uppercase;letter-spacing:0.6px;
+  }
+  .status-badge.active{background:rgba(95,174,131,0.12);color:var(--positive);border:1px solid rgba(95,174,131,0.35);}
+  .status-badge.disabled{background:rgba(210,105,93,0.12);color:var(--negative);border:1px solid rgba(210,105,93,0.35);}
+
+  .row-actions{display:flex;gap:6px;flex-wrap:wrap;}
+  .icon-btn{
+    background:transparent;border:1px solid var(--line);color:var(--steel);padding:6px 8px;border-radius:3px;
+    display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;
+  }
+  .icon-btn:hover{color:var(--ink);border-color:var(--ink);background:transparent;box-shadow:none;}
+  .icon-btn.warn:hover{color:var(--negative);border-color:var(--negative);}
+  .icon-btn svg{width:14px;height:14px;}
+
+  .empty-state{text-align:center;padding:40px 20px;color:var(--steel);font-size:13.5px;}
+
+  /* Modal */
+  .modal-overlay{
+    position:fixed;inset:0;z-index:1000;background:rgba(5,5,7,0.7);
+    display:flex;align-items:center;justify-content:center;padding:20px;
+    animation:fadeSlideUp .25s ease both;
+  }
+  .modal{
+    background:var(--paper-raised);border:1px solid var(--line);border-radius:4px;box-shadow:var(--shadow);
+    width:100%;max-width:420px;padding:28px 26px;animation:popIn .3s cubic-bezier(.2,.8,.2,1) both;
+  }
+  .modal h3{font-family:'Oswald',sans-serif;font-size:14px;text-transform:uppercase;letter-spacing:1.5px;color:var(--brass);margin:0 0 20px;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px;}
+  .modal .lg-toggle-eye{top:auto;bottom:11px;}
+  .modal .field{position:relative;}
+
+  .toast{
+    position:fixed;bottom:24px;right:24px;z-index:2000;
+    background:var(--paper-raised-2);border:1px solid var(--brass);color:var(--ink);
+    padding:13px 20px;border-radius:4px;font-size:13px;box-shadow:var(--shadow);
+    animation:popIn .3s cubic-bezier(.2,.8,.2,1) both;
+  }
+
+  .footnote{font-size:12px;color:var(--steel);margin-top:8px;}
+  code{background:rgba(255,255,255,0.06);padding:1px 6px;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:12px;}
+
+  @media (max-width:760px){
+    .admin-shell{flex-direction:column;}
+    .sidebar{width:100%;height:auto;position:relative;flex-direction:row;overflow-x:auto;padding:14px 10px;}
+    .sidebar .brandmark{display:none;}
+    .nav-item{padding:10px 14px;border-left:none;border-bottom:2px solid transparent;white-space:nowrap;}
+    .nav-item.active{border-left-color:transparent;border-bottom-color:var(--brass);}
+    .nav-item.logout{margin-top:0;margin-left:auto;}
+    .main{padding:24px 18px;}
+    .stat-grid{grid-template-columns:1fr 1fr;}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important; transition:none !important;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN GATE ============ -->
+<div class="login-gate" id="loginGate">
+  <div class="login-card">
+    <div class="lg-eyebrow">Admin Access</div>
+    <h1>Auto<span style="color:var(--brass);">Valuate</span></h1>
+    <p class="lg-sub">Sign in to the admin panel</p>
+    <form id="loginForm" novalidate>
+      <div class="lg-field" id="lgEmailField">
+        <label for="lgEmail">Admin ID</label>
+        <input type="text" id="lgEmail" autocomplete="username">
+        <div class="lg-error-msg">Please enter your admin ID</div>
+      </div>
+      <div class="lg-field" id="lgPasswordField">
+        <label for="lgPassword">Password</label>
+        <input type="password" id="lgPassword" autocomplete="current-password">
+        <button type="button" class="lg-toggle-eye" id="lgToggleEye" aria-label="Show password">
+          <svg id="lgEyeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
+        <div class="lg-error-msg">Incorrect admin ID or password</div>
+      </div>
+      <button type="submit" class="lg-btn" id="lgLoginBtn" style="margin-top:8px;">
+        <span>Log In</span>
+        <div class="lg-spinner"></div>
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- ============ ADMIN SHELL ============ -->
+<div class="admin-shell hidden" id="adminWrap">
+  <div class="sidebar">
+    <div class="brandmark">Auto<span>Valuate</span><span class="badge">Admin Panel</span></div>
+
+    <div class="nav-item active" data-page="dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+      Admin Dashboard
+    </div>
+    <div class="nav-item" data-page="clients">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Clients
+    </div>
+    <div class="nav-item" data-page="reports">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 15h6M9 11h6"/></svg>
+      View Reports
+    </div>
+    <div class="nav-item" data-page="settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Settings
+    </div>
+    <div class="nav-spacer"></div>
+    <div class="nav-item logout" id="logoutBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+      Logout
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- DASHBOARD -->
+    <div class="section" id="page-dashboard">
+      <div class="page-head">
+        <div>
+          <h1>Admin Dashboard</h1>
+          <p>Overview of all clients and valuation activity</p>
+        </div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="label">Total Clients</div><div class="value" id="statTotal">0</div></div>
+        <div class="stat-card"><div class="label">Active Clients</div><div class="value" id="statActive">0</div></div>
+        <div class="stat-card"><div class="label">Disabled Clients</div><div class="value" id="statDisabled">0</div></div>
+        <div class="stat-card"><div class="label">Reports Generated</div><div class="value" id="statReports">0</div></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>Recently Added Clients</h2></div>
+        <table>
+          <thead><tr><th>Name</th><th>User ID</th><th>Status</th></tr></thead>
+          <tbody id="recentClientsBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CLIENTS -->
+    <div class="section hidden" id="page-clients">
+      <div class="page-head">
+        <div>
+          <h1>Clients</h1>
+          <p>Add, edit, disable, or reset access for client accounts</p>
+        </div>
+        <button id="openAddClient">+ Add Client</button>
+      </div>
+      <div class="card">
+        <table>
+          <thead><tr><th>Name</th><th>User ID</th><th>Status</th><th class="num">Reports</th><th>Actions</th></tr></thead>
+          <tbody id="clientsBody"></tbody>
+        </table>
+        <div class="empty-state hidden" id="clientsEmpty">No clients yet — click "Add Client" to create one.</div>
+      </div>
+    </div>
+
+    <!-- REPORTS -->
+    <div class="section hidden" id="page-reports">
+      <div class="page-head">
+        <div>
+          <h1>View All Reports</h1>
+          <p>Every valuation report generated across all clients</p>
+        </div>
+      </div>
+      <div class="card">
+        <table>
+          <thead><tr><th>Client</th><th>Vehicle</th><th class="num">Valuation</th><th>Date</th></tr></thead>
+          <tbody id="reportsBody"></tbody>
+        </table>
+        <div class="empty-state hidden" id="reportsEmpty">No reports generated yet.</div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="section hidden" id="page-settings">
+      <div class="page-head">
+        <div>
+          <h1>Settings</h1>
+          <p>Panel configuration</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>Data source</h2></div>
+        <p style="color:var(--steel);font-size:13.5px;line-height:1.7;">
+          This panel currently stores client data in your browser's local storage as a demo/mock database, so you can test the full add / edit / reset password / disable / delete flow without a backend.
+        </p>
+        <p class="footnote">To make this real for production, connect it to Supabase (or your own backend) and replace the <code>loadData()</code> / <code>saveData()</code> functions near the bottom of this file with real API calls.</p>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>Admin credentials</h2></div>
+        <p style="color:var(--steel);font-size:13.5px;line-height:1.7;">
+          Change the admin login ID/password by editing <code>ADMIN_USER_ID</code> and <code>ADMIN_PASSWORD</code> near the bottom of this file.
+        </p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function(){
+
+  /* ================= ADMIN LOGIN CREDENTIAL ================= */
+  const ADMIN_USER_ID = 'superadmin';
+  const ADMIN_PASSWORD = 'admin@123';
+
+  /* ================= DOM refs: login ================= */
+  const loginGate = document.getElementById('loginGate');
+  const adminWrap = document.getElementById('adminWrap');
+  const loginForm = document.getElementById('loginForm');
+  const emailField = document.getElementById('lgEmailField');
+  const passwordField = document.getElementById('lgPasswordField');
+  const emailInput = document.getElementById('lgEmail');
+  const passwordInput = document.getElementById('lgPassword');
+  const loginBtn = document.getElementById('lgLoginBtn');
+  const toggleEye = document.getElementById('lgToggleEye');
+  const eyeIcon = document.getElementById('lgEyeIcon');
+
+  const EYE_OPEN = '<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/>';
+  const EYE_CLOSED = '<path d="M17.94 17.94A10.94 10.94 0 0112 19c-7 0-11-7-11-7a21.8 21.8 0 015.06-6.06M9.9 4.24A10.94 10.94 0 0112 4c7 0 11 7 11 7a21.8 21.8 0 01-2.16 3.19M14.12 14.12a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+
+  toggleEye.addEventListener('click', () => {
+    const isPassword = passwordInput.type === 'password';
+    passwordInput.type = isPassword ? 'text' : 'password';
+    eyeIcon.innerHTML = isPassword ? EYE_CLOSED : EYE_OPEN;
+  });
+
+  [emailInput, passwordInput].forEach(el => {
+    el.addEventListener('input', () => el.closest('.lg-field').classList.remove('error'));
+  });
+
+  function unlockAdmin(){
+    loginGate.classList.add('hidden');
+    adminWrap.classList.remove('hidden');
+    refreshAll();
+  }
+
+  try {
+    if (sessionStorage.getItem('av_admin_session') === '1') unlockAdmin();
+  } catch (err) { console.warn('Session check skipped:', err); }
+
+  loginForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    let valid = true;
+    if (!emailInput.value.trim()) { emailField.classList.add('error'); valid = false; }
+    else emailField.classList.remove('error');
+    if (!passwordInput.value.trim()) { passwordField.classList.add('error'); valid = false; }
+    else passwordField.classList.remove('error');
+    if (!valid) return;
+
+    loginBtn.classList.add('loading');
+    loginBtn.disabled = true;
+
+    setTimeout(() => {
+      loginBtn.classList.remove('loading');
+      loginBtn.disabled = false;
+      const ok = emailInput.value.trim() === ADMIN_USER_ID && passwordInput.value === ADMIN_PASSWORD;
+      if (ok) {
+        try { sessionStorage.setItem('av_admin_session', '1'); } catch (err) {}
+        unlockAdmin();
+      } else {
+        emailField.classList.add('error');
+        passwordField.classList.add('error');
+      }
+    }, 700);
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click', () => {
+    try { sessionStorage.removeItem('av_admin_session'); } catch (err) {}
+    adminWrap.classList.add('hidden');
+    loginGate.classList.remove('hidden');
+    passwordInput.value = '';
+  });
+
+  /* ================= Navigation ================= */
+  const navItems = document.querySelectorAll('.nav-item[data-page]');
+  navItems.forEach(item => {
+    item.addEventListener('click', () => {
+      navItems.forEach(n => n.classList.remove('active'));
+      item.classList.add('active');
+      document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
+      document.getElementById('page-' + item.dataset.page).classList.remove('hidden');
+    });
+  });
+
+  /* ================= Mock data layer (swap for real API later) ================= */
+  const STORAGE_KEY = 'av_admin_clients';
+
+  function loadData(){
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (err) { console.warn('Could not load stored clients:', err); }
+    // seed demo data on first run
+    const seed = [
+      { id: 'c1', name: 'Rohan Mehta', userId: 'rohan.mehta', password: 'temp1234', status: 'active',
+        reports: [{ vehicle: 'Maruti Swift VXI, 2019', value: 512000, date: '2026-06-18' }] },
+      { id: 'c2', name: 'Priya Nair', userId: 'priya.nair', password: 'temp1234', status: 'active',
+        reports: [{ vehicle: 'Hyundai Creta SX, 2021', value: 1145000, date: '2026-07-02' }] },
+      { id: 'c3', name: 'Arjun Kapoor', userId: 'arjun.kapoor', password: 'temp1234', status: 'disabled', reports: [] }
+    ];
+    saveData(seed);
+    return seed;
+  }
+
+  function saveData(data){
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+    catch (err) { console.warn('Could not save clients:', err); }
+  }
+
+  let clients = loadData();
+
+  function fmtINR(n){
+    return '₹' + Math.round(n).toLocaleString('en-IN');
+  }
+
+  /* ================= Rendering ================= */
+  function refreshAll(){
+    clients = loadData();
+    renderDashboard();
+    renderClients();
+    renderReports();
+  }
+
+  function renderDashboard(){
+    const total = clients.length;
+    const active = clients.filter(c => c.status === 'active').length;
+    const disabled = total - active;
+    const totalReports = clients.reduce((sum, c) => sum + c.reports.length, 0);
+    document.getElementById('statTotal').textContent = total;
+    document.getElementById('statActive').textContent = active;
+    document.getElementById('statDisabled').textContent = disabled;
+    document.getElementById('statReports').textContent = totalReports;
+
+    const recentBody = document.getElementById('recentClientsBody');
+    const recent = [...clients].slice(-5).reverse();
+    recentBody.innerHTML = recent.map(c => `
+      <tr>
+        <td>${escapeHtml(c.name)}</td>
+        <td>${escapeHtml(c.userId)}</td>
+        <td><span class="status-badge ${c.status}">${c.status}</span></td>
+      </tr>
+    `).join('') || '<tr><td colspan="3" style="color:var(--steel);">No clients yet</td></tr>';
+  }
+
+  function renderClients(){
+    const body = document.getElementById('clientsBody');
+    const empty = document.getElementById('clientsEmpty');
+    if (clients.length === 0) {
+      body.innerHTML = '';
+      empty.classList.remove('hidden');
+      return;
+    }
+    empty.classList.add('hidden');
+    body.innerHTML = clients.map(c => `
+      <tr>
+        <td>${escapeHtml(c.name)}</td>
+        <td>${escapeHtml(c.userId)}</td>
+        <td><span class="status-badge ${c.status}">${c.status}</span></td>
+        <td class="num">${c.reports.length}</td>
+        <td>
+          <div class="row-actions">
+            <button class="icon-btn" title="Edit client" data-action="edit" data-id="${c.id}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>
+            </button>
+            <button class="icon-btn" title="Reset password" data-action="reset" data-id="${c.id}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </button>
+            <button class="icon-btn" title="${c.status === 'active' ? 'Disable client' : 'Enable client'}" data-action="toggle" data-id="${c.id}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/></svg>
+            </button>
+            <button class="icon-btn warn" title="Delete client" data-action="delete" data-id="${c.id}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function renderReports(){
+    const body = document.getElementById('reportsBody');
+    const empty = document.getElementById('reportsEmpty');
+    const rows = [];
+    clients.forEach(c => {
+      c.reports.forEach(r => rows.push({ client: c.name, ...r }));
+    });
+    rows.sort((a,b) => new Date(b.date) - new Date(a.date));
+    if (rows.length === 0) {
+      body.innerHTML = '';
+      empty.classList.remove('hidden');
+      return;
+    }
+    empty.classList.add('hidden');
+    body.innerHTML = rows.map(r => `
+      <tr>
+        <td>${escapeHtml(r.client)}</td>
+        <td>${escapeHtml(r.vehicle)}</td>
+        <td class="num">${fmtINR(r.value)}</td>
+        <td>${r.date}</td>
+      </tr>
+    `).join('');
+  }
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function showToast(msg){
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2400);
+  }
+
+  /* ================= Modals ================= */
+  function openModal(html){
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = `<div class="modal">${html}</div>`;
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+    return overlay;
+  }
+
+  document.getElementById('openAddClient').addEventListener('click', () => {
+    const overlay = openModal(`
+      <h3>Add Client</h3>
+      <form id="addClientForm">
+        <div class="field"><label>Full Name</label><input type="text" id="acName" required></div>
+        <div class="field"><label>User ID / Email</label><input type="text" id="acUserId" required></div>
+        <div class="field">
+          <label>Temporary Password</label>
+          <input type="password" id="acPassword" required>
+          <button type="button" class="lg-toggle-eye" id="acEyeBtn" style="position:absolute;right:6px;bottom:9px;"><svg id="acEyeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"></svg></button>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="secondary" id="acCancel">Cancel</button>
+          <button type="submit">Add Client</button>
+        </div>
+      </form>
+    `);
+    const passInput = overlay.querySelector('#acPassword');
+    const eyeBtn = overlay.querySelector('#acEyeBtn');
+    const eyeIc = overlay.querySelector('#acEyeIcon');
+    eyeIc.innerHTML = EYE_OPEN;
+    eyeBtn.addEventListener('click', () => {
+      const isPw = passInput.type === 'password';
+      passInput.type = isPw ? 'text' : 'password';
+      eyeIc.innerHTML = isPw ? EYE_CLOSED : EYE_OPEN;
+    });
+    overlay.querySelector('#acCancel').addEventListener('click', () => overlay.remove());
+    overlay.querySelector('#addClientForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = overlay.querySelector('#acName').value.trim();
+      const userId = overlay.querySelector('#acUserId').value.trim();
+      const password = passInput.value;
+      if (!name || !userId || !password) return;
+      clients.push({ id: 'c' + Date.now(), name, userId, password, status: 'active', reports: [] });
+      saveData(clients);
+      overlay.remove();
+      refreshAll();
+      showToast('Client added successfully');
+    });
+  });
+
+  document.getElementById('clientsBody').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-action]');
+    if (!btn) return;
+    const id = btn.dataset.id;
+    const client = clients.find(c => c.id === id);
+    if (!client) return;
+    const action = btn.dataset.action;
+
+    if (action === 'edit') {
+      const overlay = openModal(`
+        <h3>Edit Client</h3>
+        <form id="editClientForm">
+          <div class="field"><label>Full Name</label><input type="text" id="ecName" value="${escapeHtml(client.name)}" required></div>
+          <div class="field"><label>User ID / Email</label><input type="text" id="ecUserId" value="${escapeHtml(client.userId)}" required></div>
+          <div class="modal-actions">
+            <button type="button" class="secondary" id="ecCancel">Cancel</button>
+            <button type="submit">Save Changes</button>
+          </div>
+        </form>
+      `);
+      overlay.querySelector('#ecCancel').addEventListener('click', () => overlay.remove());
+      overlay.querySelector('#editClientForm').addEventListener('submit', (e2) => {
+        e2.preventDefault();
+        client.name = overlay.querySelector('#ecName').value.trim();
+        client.userId = overlay.querySelector('#ecUserId').value.trim();
+        saveData(clients);
+        overlay.remove();
+        refreshAll();
+        showToast('Client updated');
+      });
+    }
+
+    if (action === 'reset') {
+      const overlay = openModal(`
+        <h3>Reset Password — ${escapeHtml(client.name)}</h3>
+        <form id="resetForm">
+          <div class="field">
+            <label>New Password</label>
+            <input type="password" id="rpPassword" required>
+            <button type="button" class="lg-toggle-eye" id="rpEyeBtn" style="position:absolute;right:6px;bottom:9px;"><svg id="rpEyeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"></svg></button>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="secondary" id="rpCancel">Cancel</button>
+            <button type="submit">Reset Password</button>
+          </div>
+        </form>
+      `);
+      const passInput = overlay.querySelector('#rpPassword');
+      const eyeIc = overlay.querySelector('#rpEyeIcon');
+      eyeIc.innerHTML = EYE_OPEN;
+      overlay.querySelector('#rpEyeBtn').addEventListener('click', () => {
+        const isPw = passInput.type === 'password';
+        passInput.type = isPw ? 'text' : 'password';
+        eyeIc.innerHTML = isPw ? EYE_CLOSED : EYE_OPEN;
+      });
+      overlay.querySelector('#rpCancel').addEventListener('click', () => overlay.remove());
+      overlay.querySelector('#resetForm').addEventListener('submit', (e2) => {
+        e2.preventDefault();
+        client.password = passInput.value;
+        saveData(clients);
+        overlay.remove();
+        showToast('Password reset for ' + client.name);
+      });
+    }
+
+    if (action === 'toggle') {
+      client.status = client.status === 'active' ? 'disabled' : 'active';
+      saveData(clients);
+      refreshAll();
+      showToast(client.name + ' is now ' + client.status);
+    }
+
+    if (action === 'delete') {
+      const overlay = openModal(`
+        <h3>Delete Client</h3>
+        <p style="color:var(--steel);font-size:13.5px;margin-bottom:20px;">
+          Are you sure you want to permanently delete <b style="color:var(--ink);">${escapeHtml(client.name)}</b>? This cannot be undone.
+        </p>
+        <div class="modal-actions">
+          <button type="button" class="secondary" id="delCancel">Cancel</button>
+          <button type="button" class="danger" id="delConfirm">Delete</button>
+        </div>
+      `);
+      overlay.querySelector('#delCancel').addEventListener('click', () => overlay.remove());
+      overlay.querySelector('#delConfirm').addEventListener('click', () => {
+        clients = clients.filter(c => c.id !== id);
+        saveData(clients);
+        overlay.remove();
+        refreshAll();
+        showToast('Client deleted');
+      });
+    }
+  });
+
+})();
+</script>
+</body>
+</html>

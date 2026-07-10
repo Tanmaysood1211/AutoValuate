@@ -1,0 +1,2934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AutoValuate — Instant Used Car Valuation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Oswald:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --paper:#0A0A0C;
+    --paper-raised:#141519;
+    --paper-raised-2:#1C1D22;
+    --ink:#F2EEE4;
+    --steel:#95969D;
+    --line:rgba(242,238,228,0.12);
+    --brass:#CFA83D;
+    --brass-dim:#A6842B;
+    --positive:#5FAE83;
+    --negative:#D2695D;
+    --shadow: 0 24px 60px rgba(0,0,0,0.55), 0 4px 16px rgba(0,0,0,0.4);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    min-height:100vh;
+    padding:0 16px 80px;
+  }
+  .wrap{max-width:880px;margin:0 auto;position:relative;z-index:1;}
+
+  /* faint film-grain drift across the whole page, near-invisible */
+  body::before{
+    content:'';
+    position:fixed;inset:-50px;
+    background-image: radial-gradient(circle at 1px 1px, rgba(242,238,228,0.035) 1px, transparent 0);
+    background-size: 26px 26px;
+    animation: grainDrift 22s linear infinite;
+    pointer-events:none;
+    z-index:0;
+  }
+  @keyframes grainDrift{
+    0%{transform:translate(0,0);}
+    100%{transform:translate(-26px,-26px);}
+  }
+
+  /* Header — thin, minimal club nav */
+  header{
+    max-width:880px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;
+    padding:22px 0;border-bottom:1px solid var(--line);flex-wrap:wrap;gap:10px;
+    animation:fadeSlideUp .5s ease both;
+  }
+  .brandmark{
+    font-family:'Oswald',sans-serif;font-weight:600;font-size:16px;letter-spacing:3px;text-transform:uppercase;
+    background-image:linear-gradient(var(--brass),var(--brass));
+    background-repeat:no-repeat;background-position:0 100%;background-size:0% 1px;
+    padding-bottom:4px;animation:underlineSweep 1.1s .4s cubic-bezier(.2,.8,.2,1) both;
+  }
+  .brandmark span{color:var(--brass);font-weight:400;}
+  .tagline{font-size:10.5px;color:var(--steel);letter-spacing:2px;text-transform:uppercase;font-weight:400;margin-top:3px;}
+  .stage-badge{
+    font-family:'IBM Plex Mono',monospace;font-size:10px;background:transparent;color:var(--brass);
+    border:1px solid var(--line);padding:5px 12px;border-radius:20px;letter-spacing:1px;
+  }
+
+  /* ===================== HERO — full-bleed cinematic ===================== */
+  .hero{
+    position:relative;
+    width:100vw;margin-left:calc(-50vw + 50%);margin-right:calc(-50vw + 50%);
+    min-height:82vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;padding:80px 24px;overflow:hidden;
+    background:
+      radial-gradient(ellipse at 50% 30%, #1a1b20 0%, #0a0a0c 65%);
+    animation:stampIn .7s cubic-bezier(.2,.8,.2,1) both;
+    border-bottom:1px solid var(--line);
+  }
+  /* two slow-sweeping "headlight" beams crossing the dark, cinematic signature */
+  .hero::before, .hero::after{
+    content:'';position:absolute;top:-20%;width:160%;height:220%;
+    background:linear-gradient(75deg, transparent 46%, rgba(207,168,61,0.07) 49.5%, rgba(207,168,61,0.13) 50%, rgba(207,168,61,0.07) 50.5%, transparent 54%);
+    animation:beamSweep 9s ease-in-out infinite;
+    pointer-events:none;
+  }
+  .hero::before{left:-60%;animation-delay:0s;}
+  .hero::after{left:-30%;animation-delay:3.2s;opacity:0.6;}
+  @keyframes beamSweep{
+    0%{transform:translateX(-15%) rotate(0deg);}
+    50%{transform:translateX(15%) rotate(1.2deg);}
+    100%{transform:translateX(-15%) rotate(0deg);}
+  }
+  .hero .eyebrow{
+    position:relative;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:4px;
+    text-transform:uppercase;color:var(--brass);margin-bottom:20px;
+    animation:fadeSlideUp .6s .05s cubic-bezier(.2,.8,.2,1) both;
+  }
+  .hero h1{
+    position:relative;
+    font-family:'Bodoni Moda',serif;font-style:italic;font-weight:500;
+    font-size:clamp(34px,6vw,58px);line-height:1.08;letter-spacing:0.2px;
+    margin:0 0 18px;color:var(--ink);max-width:780px;
+    animation:fadeSlideUp .7s .12s cubic-bezier(.2,.8,.2,1) both;
+  }
+  .hero h1 span{color:var(--brass);font-style:italic;}
+  .hero p{
+    position:relative;color:var(--steel);font-size:15.5px;max-width:480px;margin:0 auto 34px;line-height:1.7;
+    font-family:'IBM Plex Sans',sans-serif;
+    animation:fadeSlideUp .6s .22s cubic-bezier(.2,.8,.2,1) both;
+  }
+  .hero button{
+    position:relative;font-size:12.5px;padding:16px 40px;letter-spacing:2.5px;
+    background:transparent;border:1px solid var(--brass);color:var(--ink);
+    animation:fadeSlideUp .6s .32s cubic-bezier(.2,.8,.2,1) both;
+    overflow:hidden;transition:color .35s ease;
+  }
+  .hero button::before{
+    content:'';position:absolute;inset:0;background:var(--brass);
+    transform:scaleX(0);transform-origin:left;transition:transform .4s cubic-bezier(.2,.8,.2,1);z-index:-1;
+  }
+  .hero button:hover{color:#141519;}
+  .hero button:hover::before{transform:scaleX(1);}
+  .hero-flow{
+    position:relative;display:flex;justify-content:center;gap:0;flex-wrap:wrap;margin-top:48px;
+    font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--steel);letter-spacing:1px;
+    text-transform:uppercase;animation:fadeSlideUp .6s .5s cubic-bezier(.2,.8,.2,1) both;
+  }
+  .hero-flow span{padding:6px 16px;border-right:1px solid var(--line);}
+  .hero-flow span:last-child{border-right:none;}
+  .hero-flow .arrow{display:none;}
+
+  /* ===================== Step rail ===================== */
+  .rail{display:flex;gap:6px;margin:36px 0 26px;flex-wrap:wrap;position:relative;}
+  .rail::before{content:'';position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--line);z-index:0;}
+  .rail-fill{
+    position:absolute;left:0;bottom:0;height:2px;width:0%;
+    background:linear-gradient(90deg, var(--brass-dim), var(--brass));
+    transition:width .5s cubic-bezier(.2,.8,.2,1);z-index:1;
+  }
+  .rail-step{
+    flex:1;min-width:70px;text-align:center;padding:8px 4px;border-bottom:2px solid transparent;
+    font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--steel);letter-spacing:0.6px;
+    text-transform:uppercase;position:relative;z-index:1;
+    transition:border-color .3s, color .3s, transform .3s;
+  }
+  .rail-step .n{display:block;font-family:'Oswald',sans-serif;font-size:14px;font-weight:500;margin-bottom:2px;color:var(--steel);}
+  .rail-step.active{border-color:var(--brass);color:var(--ink);transform:translateY(-2px);}
+  .rail-step.active .n{color:var(--brass);}
+  .rail-step.done{border-color:var(--positive);color:var(--ink);}
+
+  /* ===================== Cards ===================== */
+  .card{
+    background:var(--paper-raised);border:1px solid var(--line);border-radius:3px;
+    padding:32px 34px;box-shadow:var(--shadow);margin-bottom:18px;
+    animation:fadeSlideUp .45s cubic-bezier(.2,.8,.2,1) both;transition:border-color .25s ease;
+  }
+  .card:hover{border-color:rgba(207,168,61,0.3);}
+  .card h2{
+    font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;margin:0 0 6px;
+    text-transform:uppercase;letter-spacing:2.5px;color:var(--brass);
+  }
+  .card .sub{color:var(--steel);font-size:13.5px;margin:0 0 24px;line-height:1.6;}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  @media (max-width:600px){.grid{grid-template-columns:1fr;}}
+
+  label{display:block;font-size:10.5px;font-weight:500;color:var(--steel);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;}
+  input[type=text], input[type=number], select{
+    width:100%;padding:11px 4px;border:none;border-bottom:1.5px solid var(--line);border-radius:0;
+    font-family:'IBM Plex Sans',sans-serif;font-size:14.5px;background:transparent;color:var(--ink);
+    transition:border-color .2s, transform .1s;
+  }
+  select{background:var(--paper-raised);padding:11px 10px;border:1.5px solid var(--line);border-radius:3px;}
+  input:focus, select:focus{outline:none;border-color:var(--brass);transform:translateY(-1px);}
+  .field{margin-bottom:18px;animation:fadeSlideUp .4s cubic-bezier(.2,.8,.2,1) both;}
+  .grid .field:nth-child(1){animation-delay:.02s;}
+  .grid .field:nth-child(2){animation-delay:.06s;}
+  .grid .field:nth-child(3){animation-delay:.1s;}
+  .grid .field:nth-child(4){animation-delay:.14s;}
+  .grid .field:nth-child(5){animation-delay:.18s;}
+
+  /* Number plate */
+  .plate-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  .plate{
+    display:inline-flex;align-items:stretch;background:#0E0F12;border:1.5px solid var(--brass);border-radius:4px;overflow:hidden;
+    font-family:'IBM Plex Mono',monospace;font-weight:700;letter-spacing:2px;
+    animation:popIn .4s cubic-bezier(.2,.8,.2,1) both;transition:transform .2s ease;
+  }
+  .plate:hover{transform:translateY(-1px);}
+  .plate .band{background:var(--brass);color:#0E0F12;font-size:10px;padding:6px 5px;display:flex;align-items:center;letter-spacing:1px;writing-mode:vertical-rl;}
+  .plate .num{padding:8px 14px;font-size:20px;color:var(--ink);}
+  .rto-tag{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--steel);}
+  .rto-tag b{color:var(--ink);}
+
+  .or-divider{display:flex;align-items:center;gap:12px;margin:22px 0;color:var(--steel);font-family:'IBM Plex Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:2px;}
+  .or-divider::before,.or-divider::after{content:'';flex:1;height:1px;background:var(--line);}
+
+  button{
+    font-family:'Oswald',sans-serif;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;font-size:12px;
+    background:var(--ink);color:#141519;border:1px solid var(--ink);padding:13px 24px;border-radius:2px;cursor:pointer;
+    position:relative;overflow:hidden;transition:background .2s, color .2s, transform .08s, box-shadow .2s, border-color .2s;
+  }
+  button:hover{background:var(--brass);border-color:var(--brass);box-shadow:0 4px 16px rgba(207,168,61,0.25);}
+  button:active{transform:translateY(1px) scale(0.98);}
+  button.secondary{background:transparent;color:var(--steel);border:1px solid var(--line);}
+  button.secondary:hover{background:transparent;color:var(--ink);border-color:var(--ink);box-shadow:none;}
+  button:disabled{opacity:0.35;cursor:not-allowed;}
+  .btn-row{display:flex;gap:10px;justify-content:flex-end;margin-top:26px;flex-wrap:wrap;}
+  .ripple{
+    position:absolute;border-radius:50%;pointer-events:none;background:rgba(255,255,255,0.35);
+    transform:scale(0);animation:rippleOut .55s ease-out;
+  }
+  button.secondary .ripple{background:rgba(242,238,228,0.15);}
+  @keyframes rippleOut{ to{transform:scale(1); opacity:0;} }
+
+  .checklist{display:grid;grid-template-columns:1fr 1fr;gap:16px 22px;}
+  @media (max-width:600px){.checklist{grid-template-columns:1fr;}}
+  .checklist .field:nth-child(1){animation-delay:.02s;}
+  .checklist .field:nth-child(2){animation-delay:.05s;}
+  .checklist .field:nth-child(3){animation-delay:.08s;}
+  .checklist .field:nth-child(4){animation-delay:.11s;}
+  .checklist .field:nth-child(5){animation-delay:.14s;}
+  .checklist .field:nth-child(6){animation-delay:.17s;}
+  .checklist .field:nth-child(7){animation-delay:.2s;}
+  .checklist .field:nth-child(8){animation-delay:.23s;}
+  .checklist .field:nth-child(9){animation-delay:.26s;}
+  .checklist .field:nth-child(10){animation-delay:.29s;}
+  .checklist .field:nth-child(11){animation-delay:.32s;}
+
+  .hidden{display:none !important;}
+
+  /* Comps table */
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th,td{text-align:left;padding:10px 10px;border-bottom:1px solid var(--line);}
+  th{font-family:'IBM Plex Mono',monospace;font-size:10.5px;text-transform:uppercase;color:var(--steel);letter-spacing:1px;}
+  td.num{font-family:'IBM Plex Mono',monospace;text-align:right;color:var(--ink);}
+  th.num{text-align:right;}
+  .comp-note{margin-top:14px;font-size:13px;color:var(--steel);}
+  .comp-note b{color:var(--ink);}
+  tbody tr{animation:fadeSlideUp .3s cubic-bezier(.2,.8,.2,1) both;}
+
+  /* Report layout */
+  .report-top{display:flex;gap:24px;align-items:center;flex-wrap:wrap;justify-content:space-between;}
+  .odometer{display:flex;gap:4px;}
+  .odo-digit{
+    background:#0C0D10;color:var(--brass);font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:30px;
+    width:30px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:3px;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.7), 0 1px 0 rgba(255,255,255,0.04);
+    animation:digitRoll .45s cubic-bezier(.2,.8,.2,1) both;overflow:hidden;
+  }
+  .odo-digit:nth-child(1){animation-delay:.02s;} .odo-digit:nth-child(2){animation-delay:.06s;}
+  .odo-digit:nth-child(3){animation-delay:.1s;} .odo-digit:nth-child(4){animation-delay:.14s;}
+  .odo-digit:nth-child(5){animation-delay:.18s;} .odo-digit:nth-child(6){animation-delay:.22s;}
+  .odo-digit:nth-child(7){animation-delay:.26s;} .odo-digit:nth-child(8){animation-delay:.3s;}
+  .odo-rupee{font-family:'Oswald',sans-serif;font-size:15px;color:var(--steel);align-self:flex-end;margin-bottom:4px;}
+  .odo-wrap{display:flex;align-items:baseline;gap:8px;}
+  .range-note{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--steel);margin-top:6px;}
+
+  .gauge-wrap{text-align:center;}
+  .gauge-wrap svg{animation:popIn .5s cubic-bezier(.2,.8,.2,1) both;}
+  .gauge-label{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--steel);text-transform:uppercase;letter-spacing:1px;margin-top:2px;}
+  .gauge-value{font-family:'Oswald',sans-serif;font-weight:700;font-size:22px;color:var(--ink);}
+
+  .price-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:26px;}
+  @media (max-width:640px){.price-cards{grid-template-columns:1fr;}}
+  .price-card{
+    border:1px solid var(--line);border-radius:3px;padding:16px 18px;background:var(--paper-raised-2);
+    animation:fadeSlideUp .4s cubic-bezier(.2,.8,.2,1) both;transition:transform .2s ease, border-color .2s ease;
+  }
+  .price-cards .price-card:nth-child(1){animation-delay:.05s;}
+  .price-cards .price-card:nth-child(2){animation-delay:.12s;}
+  .price-cards .price-card:nth-child(3){animation-delay:.19s;}
+  .price-card:hover{transform:translateY(-3px);border-color:var(--brass);}
+  .price-card .label{font-size:10.5px;text-transform:uppercase;color:var(--steel);letter-spacing:1px;font-weight:600;}
+  .price-card .value{font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:19px;margin-top:6px;color:var(--ink);}
+
+  .adjustments{margin-top:26px;}
+  .adj-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13px;animation:fadeSlideUp .35s cubic-bezier(.2,.8,.2,1) both;}
+  .adj-row.total{border-bottom:none;border-top:1px solid var(--brass);font-weight:700;padding-top:12px;margin-top:4px;}
+  .adj-amt.pos{color:var(--positive);}
+  .adj-amt.neg{color:var(--negative);}
+
+  .scores{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:24px;}
+  @media (max-width:640px){.scores{grid-template-columns:repeat(2,1fr);}}
+  .score-box{text-align:center;animation:popIn .4s cubic-bezier(.2,.8,.2,1) both;}
+  .scores .score-box:nth-child(1){animation-delay:.04s;} .scores .score-box:nth-child(2){animation-delay:.09s;}
+  .scores .score-box:nth-child(3){animation-delay:.14s;} .scores .score-box:nth-child(4){animation-delay:.19s;}
+  .scores .score-box:nth-child(5){animation-delay:.24s;}
+  .score-bar-bg{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin:8px 0;}
+  .score-bar-fill{height:100%;background:var(--brass);transition:width 1s cubic-bezier(.16,.9,.2,1);}
+  .score-name{font-size:10.5px;color:var(--steel);text-transform:uppercase;letter-spacing:1px;}
+  .score-val{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:var(--ink);}
+
+  .procon{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:26px;}
+  @media (max-width:640px){.procon{grid-template-columns:1fr;}}
+  .procon ul{list-style:none;padding:0;margin:10px 0 0;}
+  .procon li{padding:6px 0;font-size:13px;display:flex;gap:8px;align-items:flex-start;animation:fadeSlideUp .35s cubic-bezier(.2,.8,.2,1) both;}
+  .procon ul li:nth-child(1){animation-delay:.03s;} .procon ul li:nth-child(2){animation-delay:.08s;}
+  .procon ul li:nth-child(3){animation-delay:.13s;} .procon ul li:nth-child(4){animation-delay:.18s;}
+  .procon ul li:nth-child(5){animation-delay:.23s;} .procon ul li:nth-child(6){animation-delay:.28s;}
+  .procon h3{font-family:'Oswald',sans-serif;font-size:12px;text-transform:uppercase;letter-spacing:2px;margin:0;color:var(--brass);}
+  .tick{color:var(--positive);font-weight:700;}
+  .cross{color:var(--negative);font-weight:700;}
+
+  .overall-badge{
+    display:inline-flex;align-items:baseline;gap:6px;background:transparent;color:var(--ink);
+    padding:9px 18px;border-radius:20px;border:1px solid var(--brass);
+    font-family:'IBM Plex Mono',monospace;font-weight:700;
+    animation:popIn .5s .2s cubic-bezier(.2,.8,.2,1) both;transition:transform .2s;
+  }
+  .overall-badge:hover{transform:scale(1.03);}
+  .overall-badge small{font-family:'IBM Plex Sans',sans-serif;font-weight:400;opacity:0.7;font-size:11px;color:var(--steel);}
+
+  .footnote{font-size:12px;color:var(--steel);margin-top:28px;border-top:1px solid var(--line);padding-top:16px;}
+
+  /* Original price found box */
+  .found-box{
+    background:var(--paper-raised-2);border:1.5px solid var(--brass);border-radius:4px;padding:26px 24px;text-align:center;
+    animation:popIn .45s cubic-bezier(.2,.8,.2,1) both;
+  }
+  .found-box .fb-label{font-size:10.5px;text-transform:uppercase;letter-spacing:1.5px;color:var(--steel);font-weight:600;}
+  .found-box .fb-price{font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:32px;margin:8px 0 14px;color:var(--brass);transition:transform .15s;}
+  .found-box .fb-sub{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--steel);}
+  .fb-loading{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--steel);text-align:center;padding:20px 0;}
+
+  /* AI valuation section */
+  .ai-section{margin-top:22px;}
+  .ai-heading{font-family:'Oswald',sans-serif;font-size:14px;text-transform:uppercase;letter-spacing:2px;margin:0 0 6px;color:var(--brass);}
+  .ai-heading span{color:var(--steel);text-transform:none;font-weight:400;letter-spacing:0;font-size:13px;}
+  .resale-card{
+    background:var(--paper-raised-2);border:1px solid var(--line);border-radius:4px;padding:18px 20px;margin-bottom:18px;
+    animation:fadeSlideUp .4s cubic-bezier(.2,.8,.2,1) both;
+  }
+  .resale-card .rc-row{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px 20px;font-size:13px;padding:6px 0;}
+  .resale-card .rc-row b{font-family:'IBM Plex Mono',monospace;color:var(--ink);}
+  .resale-card .rc-title{font-family:'Oswald',sans-serif;font-size:12px;text-transform:uppercase;letter-spacing:1.5px;margin:0 0 10px;color:var(--steel);}
+  .rc-delta.pos{color:var(--positive);font-weight:700;}
+  .rc-delta.neg{color:var(--negative);font-weight:700;}
+  .ai-card{
+    background:var(--paper-raised-2);border:1.5px solid var(--brass);border-radius:4px;padding:20px 22px;margin-top:18px;
+    position:relative;animation:fadeSlideUp .4s cubic-bezier(.2,.8,.2,1) both;
+  }
+  .ai-card::before{
+    content:'';position:absolute;inset:0;border-radius:4px;pointer-events:none;
+    box-shadow:0 0 0 0 rgba(207,168,61,0.45);animation:railPulse 1.1s ease-out;
+  }
+  .ai-card .ai-price{font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:24px;margin:6px 0 2px;color:var(--brass);}
+  .ai-card .ai-range{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--steel);}
+  .ai-card .ai-summary{font-size:13px;margin-top:14px;line-height:1.6;color:var(--ink);}
+  .ai-loading{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--steel);margin-top:12px;}
+  .ai-error{background:rgba(210,105,93,0.1);border:1.5px solid var(--negative);color:#E7A79E;padding:11px 14px;border-radius:4px;font-size:13px;margin-top:12px;}
+  .fetch-status{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--steel);margin-top:12px;text-align:right;}
+
+  @keyframes fadeSlideUp{ from{opacity:0; transform:translateY(14px);} to{opacity:1; transform:translateY(0);} }
+  @keyframes stampIn{ 0%{opacity:0; transform:scale(1.02);} 100%{opacity:1; transform:scale(1);} }
+  @keyframes popIn{ from{opacity:0; transform:translateY(6px) scale(0.97);} to{opacity:1; transform:translateY(0) scale(1);} }
+  @keyframes underlineSweep{ from{background-size:0% 1px;} to{background-size:100% 1px;} }
+  @keyframes railPulse{ 0%{box-shadow:0 0 0 0 rgba(207,168,61,0.45);} 100%{box-shadow:0 0 0 8px rgba(207,168,61,0);} }
+  @keyframes digitRoll{ from{opacity:0; transform:translateY(-100%);} to{opacity:1; transform:translateY(0);} }
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important; transition:none !important;}
+    body::before{display:none;}
+    .hero::before,.hero::after{display:none;}
+    .login-gate::before,.login-gate::after{display:none;}
+  }
+
+  /* ===================== Login gate ===================== */
+  .login-gate{
+    position:fixed;inset:0;z-index:9999;overflow:hidden;
+    display:flex;align-items:center;justify-content:center;padding:24px;
+    background:radial-gradient(ellipse at 50% 30%, #1a1b20 0%, #0a0a0c 65%);
+  }
+  .login-gate::before,.login-gate::after{
+    content:'';position:absolute;top:-20%;width:160%;height:220%;
+    background:linear-gradient(75deg, transparent 46%, rgba(207,168,61,0.06) 49.5%, rgba(207,168,61,0.11) 50%, rgba(207,168,61,0.06) 50.5%, transparent 54%);
+    animation:beamSweep 9s ease-in-out infinite;pointer-events:none;
+  }
+  .login-gate::before{left:-60%;}
+  .login-gate::after{left:-30%;animation-delay:3.2s;opacity:0.6;}
+
+  .login-card{
+    position:relative;z-index:1;width:100%;max-width:380px;
+    background:var(--paper-raised);border:1px solid var(--line);border-radius:4px;
+    padding:40px 34px 32px;box-shadow:var(--shadow);
+    animation:fadeSlideUp .5s cubic-bezier(.2,.8,.2,1) both;
+  }
+  .login-card .lg-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:3px;text-transform:uppercase;color:var(--brass);text-align:center;margin-bottom:14px;}
+  .login-card h1{font-family:'Bodoni Moda',serif;font-style:italic;font-weight:500;font-size:28px;text-align:center;margin:0 0 8px;color:var(--ink);}
+  .login-card .lg-sub{text-align:center;font-size:13px;color:var(--steel);margin:0 0 28px;}
+
+  .lg-field{margin-bottom:18px;position:relative;}
+  .lg-field label{display:block;font-size:10.5px;font-weight:500;color:var(--steel);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;}
+  .lg-field input{
+    width:100%;padding:11px 38px 11px 4px;border:none;border-bottom:1.5px solid var(--line);border-radius:0;
+    font-family:'IBM Plex Sans',sans-serif;font-size:14.5px;background:transparent;color:var(--ink);
+    transition:border-color .2s, transform .1s;
+  }
+  .lg-field input:focus{outline:none;border-color:var(--brass);transform:translateY(-1px);}
+  .lg-field.error input{border-color:var(--negative);}
+  .lg-error-msg{display:none;font-size:11.5px;color:var(--negative);margin-top:6px;font-family:'IBM Plex Mono',monospace;}
+  .lg-field.error .lg-error-msg{display:block;}
+
+  .lg-toggle-eye{position:absolute;right:2px;top:33px;background:none;border:none;cursor:pointer;color:var(--steel);padding:4px;display:flex;transition:color .2s;}
+  .lg-toggle-eye:hover{color:var(--ink);}
+  .lg-toggle-eye svg{width:17px;height:17px;}
+
+  .lg-remember{display:flex;align-items:center;gap:8px;color:var(--steel);font-size:12.5px;cursor:pointer;user-select:none;margin-bottom:26px;}
+  .lg-remember input{display:none;}
+  .lg-checkbox{width:16px;height:16px;border:1px solid var(--line);border-radius:2px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;}
+  .lg-checkbox svg{width:10px;height:10px;opacity:0;transform:scale(.6);transition:all .2s;}
+  .lg-remember input:checked + .lg-checkbox{background:var(--brass);border-color:var(--brass);}
+  .lg-remember input:checked + .lg-checkbox svg{opacity:1;transform:scale(1);}
+
+  .lg-btn{width:100%;padding:13px;}
+  .lg-btn .lg-spinner{display:none;width:15px;height:15px;border:2px solid rgba(20,21,25,0.3);border-top-color:#141519;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto;}
+  .lg-btn.loading span{display:none;}
+  .lg-btn.loading .lg-spinner{display:block;}
+  @keyframes spin{ to{transform:rotate(360deg);} }
+</style>
+</head>
+<body>
+
+<!-- LOGIN GATE -->
+<div class="login-gate" id="loginGate">
+  <div class="login-card">
+    <div class="lg-eyebrow">Members Only</div>
+    <h1>Auto<span style="color:var(--brass);">Valuate</span></h1>
+    <p class="lg-sub">Sign in to access the valuation desk</p>
+    <form id="loginForm" novalidate>
+      <div class="lg-field" id="lgEmailField">
+        <label for="lgEmail">User ID</label>
+        <input type="text" id="lgEmail" autocomplete="username">
+        <div class="lg-error-msg">Please enter your user ID</div>
+      </div>
+      <div class="lg-field" id="lgPasswordField">
+        <label for="lgPassword">Password</label>
+        <input type="password" id="lgPassword" autocomplete="current-password">
+        <button type="button" class="lg-toggle-eye" id="lgToggleEye" aria-label="Show password">
+          <svg id="lgEyeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
+        <div class="lg-error-msg">Incorrect user ID or password</div>
+      </div>
+      <label class="lg-remember">
+        <input type="checkbox" id="lgRemember">
+        <span class="lg-checkbox">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#141519" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+        </span>
+        Remember me
+      </label>
+      <button type="submit" class="lg-btn" id="lgLoginBtn">
+        <span>Log In</span>
+        <div class="lg-spinner"></div>
+      </button>
+    </form>
+  </div>
+</div>
+
+<div class="wrap hidden" id="appWrap">
+ 
+  <header>
+    <div>
+      <div class="brandmark">AUTO<span>VALUATE</span></div>
+      <div class="tagline">Instant used car valuation</div>
+    </div>
+    <div class="stage-badge">Cʀᴇᴀᴛᴇᴅ Bʏ Tᴀɴᴍᴀʏ Sᴏᴏᴅ</div>
+  </header>
+ 
+  <div id="configWarning" class="hidden" style="background:rgba(193,84,74,0.12);border:1.5px solid var(--negative);color:#E7A79E;padding:14px 18px;border-radius:6px;margin-bottom:20px;font-size:13px;">
+    <b>Not connected yet.</b> Open this file in a text editor, find the <code>SUPABASE_URL</code> and <code>SUPABASE_ANON_KEY</code> lines near the top of the <code>&lt;script&gt;</code> section, and paste in the values from your Supabase project's <b>Settings → API</b> page.
+  </div>
+
+  <!-- HOME -->
+  <div class="hero" id="home">
+    <div class="eyebrow">Ｔｈｅ Ｐｒｉｖａｔｅ Ｖａｌｕａｔｉｏｎ Ｄｅｓｋ</div>
+    <h1>Sell Your <span>Car</span><br>The Smart Way</h1>
+    <p>An Instant, Data-Backed Valuation For Your Used Car — Built On Real Sold-Vehicle Comparables With AI Reasoning.</p>
+    <button type="button" id="startSellBtn">Begin Valuation</button>
+    <div class="hero-flow">
+      <span>Identify</span>
+      <span>Reg. Year</span>
+      <span>Original Price</span>
+      <span>Condition</span>
+      <span>AI Valuation</span>
+      <span>Final Report</span>
+    </div>
+  </div>
+ 
+  <div class="rail hidden" id="rail">
+    <div class="rail-fill" id="railFill"></div>
+    <div class="rail-step active" data-step="1"><span class="n">01</span>Identify</div>
+    <div class="rail-step" data-step="2"><span class="n">02</span>Reg. Year</div>
+    <div class="rail-step" data-step="3"><span class="n">03</span>Orig. Price</div>
+    <div class="rail-step" data-step="4"><span class="n">04</span>Condition</div>
+    <div class="rail-step" data-step="5"><span class="n">05</span>AI Value</div>
+    <div class="rail-step" data-step="6"><span class="n">06</span>Report</div>
+  </div>
+ 
+  <!-- STEP 1: Identify the car -->
+  <div class="card hidden" id="step1">
+    <h2>Identify your car</h2>
+    <p class="sub">Enter the registration number, or select the brand, model and variant directly.</p>
+ 
+    <div class="field">
+      <label for="regInput">Registration number</label>
+      <div class="plate-row">
+        <input type="text" id="regInput" placeholder="RJ14AB1234" style="max-width:220px;text-transform:uppercase;">
+        <button type="button" id="lookupBtn">Look up</button>
+      </div>
+    </div>
+ 
+    <div id="plateDisplay" class="hidden" style="margin:14px 0 6px;">
+      <div class="plate-row">
+        <div class="plate"><div class="band">IND</div><div class="num" id="plateNum">RJ 14 AB 1234</div></div>
+        <span class="rto-tag">Registered in <b id="rtoState">—</b> · RTO code <b id="rtoCode">—</b></span>
+      </div>
+    </div>
+
+    <div id="lookupStatus" class="hidden comp-note" style="margin:6px 0 6px;"></div>
+
+
+    <div class="or-divider">OR select manually</div>
+ 
+    <div class="grid">
+      <div class="field">
+        <label for="brandSel">Brand</label>
+        <select id="brandSel"><option value="">Select brand</option></select>
+      </div>
+      <div class="field">
+        <label for="modelSel">Model</label>
+        <select id="modelSel"><option value="">Select model</option></select>
+      </div>
+      <div class="field">
+        <label for="variantSel">Variant</label>
+        <select id="variantSel"><option value="">Select variant</option></select>
+      </div>
+      <div class="field">
+        <label for="fuelSel">Fuel</label>
+        <select id="fuelSel">
+          <option>Petrol</option><option>Diesel</option><option>CNG</option><option>Electric</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="transSel">Transmission</label>
+        <select id="transSel"><option>Manual</option><option>Automatic</option></select>
+      </div>
+    </div>
+ 
+    <div class="btn-row">
+      <button type="button" id="toStep2">Next: registration year →</button>
+    </div>
+  </div>
+
+  <!-- STEP 2: Registration year -->
+  <div class="card hidden" id="step2">
+    <h2>Registration year</h2>
+    <p class="sub">This is what lets us find the car's original price and how old it is.</p>
+
+    <div class="grid">
+      <div class="field">
+        <label for="yearInput">Registration year</label>
+        <input type="number" id="yearInput" min="2005" max="2026" value="2020">
+      </div>
+      <div class="field">
+        <label for="ownerSel">Owner</label>
+        <select id="ownerSel"><option>1st</option><option>2nd</option><option>3rd+</option></select>
+      </div>
+      <div class="field">
+        <label for="insSel">Insurance status</label>
+        <select id="insSel"><option>Valid</option><option>Expired</option></select>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button type="button" class="secondary" id="backTo1">← Back</button>
+      <button type="button" id="toStep3">Find original price →</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: System finds original price -->
+  <div class="card hidden" id="step3">
+    <h2>Original price</h2>
+    <p class="sub" id="foundSub">Looking up the original ex-showroom price for this car…</p>
+
+    <div id="foundBox"></div>
+
+    <div class="btn-row">
+      <button type="button" class="secondary" id="backTo2">← Back</button>
+      <button type="button" id="toStep4">Continue to condition →</button>
+    </div>
+  </div>
+ 
+  <!-- STEP 4: Vehicle condition -->
+  <div class="card hidden" id="step4">
+    <h2>Usage &amp; condition</h2>
+    <p class="sub">No API can see this — we need it straight from you or an inspection.</p>
+ 
+    <div class="checklist">
+      <div class="field">
+        <label for="kmInput">KM driven</label>
+        <input type="number" id="kmInput" value="42000" min="0">
+      </div>
+      <div class="field">
+        <label for="accidentSel">Accident history</label>
+        <select id="accidentSel"><option>None</option><option>Minor</option><option>Major</option></select>
+      </div>
+      <div class="field">
+        <label for="serviceSel">Service history</label>
+        <select id="serviceSel"><option>Full</option><option>Partial</option><option>None</option></select>
+      </div>
+      <div class="field">
+        <label for="tyreSel">Tyre condition</label>
+        <select id="tyreSel"><option>New</option><option>Good</option><option>Worn</option></select>
+      </div>
+      <div class="field">
+        <label for="engineSel">Engine condition</label>
+        <select id="engineSel"><option>Excellent</option><option>Good</option><option>Fair</option><option>Poor</option></select>
+      </div>
+      <div class="field">
+        <label for="batterySel">Battery condition</label>
+        <select id="batterySel"><option>New</option><option>Good</option><option>Weak</option></select>
+      </div>
+      <div class="field">
+        <label for="interiorSel">Interior condition</label>
+        <select id="interiorSel"><option>Excellent</option><option>Good</option><option>Average</option><option>Poor</option></select>
+      </div>
+      <div class="field">
+        <label for="paintSel">Paint condition</label>
+        <select id="paintSel"><option>Excellent</option><option>Good</option><option>Minor Scratches</option><option>Major Damage</option></select>
+      </div>
+      <div class="field">
+        <label for="keysSel">Keys available</label>
+        <select id="keysSel"><option>Both</option><option>One</option><option>None</option></select>
+      </div>
+      <div class="field">
+        <label for="rcSel">RC available</label>
+        <select id="rcSel"><option>Yes</option><option>No</option></select>
+      </div>
+      <div class="field">
+        <label for="loanSel">Loan closed</label>
+        <select id="loanSel"><option>Yes</option><option>No</option></select>
+      </div>
+    </div>
+
+    <p class="fetch-status" id="fetchStatus"></p>
+ 
+    <div class="btn-row">
+      <button type="button" class="secondary" id="backTo3">← Back</button>
+      <button type="button" id="toStep5">Get AI valuation →</button>
+    </div>
+  </div>
+
+  <!-- STEP 5: AI Valuation -->
+  <div class="card hidden" id="step5">
+    <h2>AI valuation</h2>
+    <p class="sub" id="aiSub"></p>
+
+    <div class="report-top">
+      <div>
+        <div class="odo-wrap">
+          <span class="odo-rupee">₹</span>
+          <div class="odometer" id="odometer"></div>
+        </div>
+        <div class="range-note" id="rangeNote"></div>
+      </div>
+      <div class="gauge-wrap">
+        <svg width="130" height="80" viewBox="0 0 130 80" id="gaugeSvg"></svg>
+        <div class="gauge-value" id="gaugeValue">—</div>
+        <div class="gauge-label">Confidence</div>
+      </div>
+    </div>
+
+    <div class="price-cards">
+      <div class="price-card"><div class="label">Market value</div><div class="value" id="marketValue">—</div></div>
+      <div class="price-card"><div class="label">Dealer offer</div><div class="value" id="dealerOffer">—</div></div>
+      <div class="price-card"><div class="label">Expected selling price</div><div class="value" id="sellingPrice">—</div></div>
+    </div>
+
+    <div class="ai-section" id="aiSection">
+      <h3 class="ai-heading" style="margin-top:22px;">Ask Claude <span>— powered by Claude</span></h3>
+      <p class="sub" style="margin:0 0 14px;">Claude yeh sab details — condition, comparables, registration-year price history — padh kar apna khud ka price estimate aur ek chhota reasoning deta hai.</p>
+
+      <div id="resaleCard"></div>
+
+      <div class="field" style="max-width:460px;">
+        <label for="aiApiKeyInput">Anthropic API key</label>
+        <div class="plate-row">
+          <input type="password" id="aiApiKeyInput" placeholder="sk-ant-...">
+          <button type="button" id="aiGenerateBtn">Generate AI valuation</button>
+        </div>
+        <p class="comp-note" style="margin-top:6px;">Key seedhi aapke browser se Anthropic ko jaati hai, kahi save/store nahi hoti. Key <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a> se banayi ja sakti hai. (Client-side me key daalna sirf apne personal use / testing ke liye theek hai — kisi public/live site par isse apne server ke through call karana chahiye.)</p>
+      </div>
+
+      <div id="aiResultBox"></div>
+    </div>
+
+    <div class="btn-row">
+      <button type="button" class="secondary" id="backTo4">← Back</button>
+      <button type="button" id="toStep6">View full report →</button>
+    </div>
+  </div>
+ 
+  <!-- STEP 6: Final Report -->
+  <div class="card hidden" id="step6">
+    <h2>Valuation report</h2>
+    <p class="sub" id="reportSub"></p>
+
+    <table id="compsTable">
+      <thead><tr><th>Brand</th><th>Model</th><th>Variant</th><th>Year</th><th class="num">KM</th><th class="num">Sold price</th></tr></thead>
+      <tbody id="compsBody"></tbody>
+    </table>
+    <p class="comp-note" id="compsNote"></p>
+ 
+    <div class="adjustments" id="adjustments">
+      <h3 style="font-family:'Oswald',sans-serif;font-size:14px;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 8px;">Rule-engine adjustments</h3>
+      <div id="adjRows"></div>
+    </div>
+ 
+    <div class="scores" id="scores"></div>
+ 
+    <div style="margin-top:22px;">
+      <span class="overall-badge" id="overallBadge">— <small>/ 100 overall</small></span>
+    </div>
+ 
+    <div class="procon">
+      <div>
+        <h3>Pros</h3>
+        <ul id="prosList"></ul>
+      </div>
+      <div>
+        <h3>Cons</h3>
+        <ul id="consList"></ul>
+      </div>
+    </div>
+ 
+    <div class="footnote">
+      Estimate generated by a transparent rule engine comparing this vehicle to <span id="footCompCount">0</span> similar sales, adjusted for reported condition.
+    </div>
+ 
+    <div class="btn-row">
+      <button type="button" class="secondary" id="backTo5">← Back</button>
+      <button type="button" id="startOver">Start new valuation</button>
+    </div>
+  </div>
+ 
+</div>
+ 
+<script>
+/* ---------------- Data ---------------- */
+const STATE_CODES = {
+  AN: "Andaman and Nicobar Islands",
+  AP: "Andhra Pradesh",
+  AR: "Arunachal Pradesh",
+  AS: "Assam",
+  BR: "Bihar",
+  CG: "Chhattisgarh",
+  CH: "Chandigarh",
+  DD: "Dadra and Nagar Haveli and Daman and Diu",
+  DL: "Delhi",
+  GA: "Goa",
+  GJ: "Gujarat",
+  HR: "Haryana",
+  HP: "Himachal Pradesh",
+  JH: "Jharkhand",
+  JK: "Jammu and Kashmir",
+  KA: "Karnataka",
+  KL: "Kerala",
+  LA: "Ladakh",
+  LD: "Lakshadweep",
+  MH: "Maharashtra",
+  ML: "Meghalaya",
+  MN: "Manipur",
+  MP: "Madhya Pradesh",
+  MZ: "Mizoram",
+  NL: "Nagaland",
+  OD: "Odisha",
+  PB: "Punjab",
+  PY: "Puducherry",
+  RJ: "Rajasthan",
+  SK: "Sikkim",
+  TN: "Tamil Nadu",
+  TR: "Tripura",
+  TS: "Telangana",
+  UK: "Uttarakhand",
+  UP: "Uttar Pradesh",
+  WB: "West Bengal"
+};
+ 
+// All India Car Brands, Models & Variants
+// Note: Variant names/lineups change frequently with facelifts & new launches.
+// Please cross-check the latest variants on the brand's official website before using in production.
+
+const CATALOG = {
+  "Maruti Suzuki": {
+    "Swift": ["LXI", "VXI", "ZXI", "ZXI+"],
+    "Baleno": ["Sigma", "Delta", "Zeta", "Alpha"],
+    "Dzire": ["LXI", "VXI", "ZXI", "ZXI+"],
+    "WagonR": ["LXI", "VXI", "VXI+", "ZXI", "ZXI+"],
+    "Alto K10": ["Std", "LXI", "VXI", "VXI+"],
+    "Celerio": ["LXI", "VXI", "ZXI", "ZXI+"],
+    "Ertiga": ["LXI", "VXI", "ZXI", "ZXI+"],
+    "XL6": ["Zeta", "Alpha"],
+    "Brezza": ["LXI", "VXI", "ZXI", "ZXI+"],
+    "Grand Vitara": ["Sigma", "Delta", "Zeta", "Zeta+", "Alpha", "Alpha+"],
+    "Fronx": ["Sigma", "Delta", "Delta+", "Zeta", "Alpha"],
+    "Jimny": ["Zeta", "Alpha"],
+    "Invicto": ["Zeta", "Alpha", "Alpha+"],
+    "Eeco": ["5 STR", "7 STR"],
+    "S-Presso": ["Std", "LXI", "VXI", "VXI+"]
+  },
+
+  "Hyundai": {
+    "i20": ["Magna", "Sportz", "Asta", "Asta (O)", "N Line"],
+    "Grand i10 Nios": ["Era", "Magna", "Sportz", "Asta"],
+    "Aura": ["Era", "Magna", "Sportz", "SX", "SX+"],
+    "Verna": ["EX", "S", "SX", "SX(O)", "SX Turbo", "SX(O) Turbo"],
+    "Creta": ["E", "EX", "S", "SX", "SX(O)", "SX(O) Knight"],
+    "Venue": ["E", "S", "S+", "SX", "SX(O)"],
+    "Alcazar": ["Prestige", "Platinum", "Signature"],
+    "Tucson": ["Signature", "Platinum"],
+    "Exter": ["EX", "S", "SX", "SX(O)"],
+    "Ioniq 5": ["Prime", "Signature"]
+  },
+
+  "Tata Motors": {
+    "Tiago": ["XE", "XM", "XM+", "XT", "XZ", "XZ+", "XZA+"],
+    "Tigor": ["XE", "XM", "XZ", "XZ+", "XZA+"],
+    "Altroz": ["XE", "XM", "XM+", "XT", "XZ", "XZ+", "XZO"],
+    "Punch": ["Pure", "Adventure", "Accomplished", "Accomplished+", "Creative", "Creative+", "Fearless", "Fearless+"],
+    "Nexon": ["Smart", "Smart+", "Pure", "Pure+", "Pure+ S", "Creative", "Creative+ S", "Fearless", "Fearless+", "Empowered"],
+    "Harrier": ["Smart", "Pure", "Adventure", "Fearless", "Fearless+", "Fearless+ AS"],
+    "Safari": ["Smart", "Pure", "Adventure", "Fearless", "Fearless+", "Accomplished+"],
+    "Curvv": ["Smart", "Pure", "Creative", "Accomplished", "Empowered"],
+    "Curvv EV": ["Creative 45", "Creative+ 45", "Accomplished+ 55", "Empowered+ 55"],
+    "Nexon EV": ["Creative", "Fearless", "Empowered", "Empowered+"],
+    "Tiago EV": ["XE", "XT", "XZ+", "XZ+ Tech Lux"],
+    "Punch EV": ["Smart", "Adventure", "Empowered", "Empowered+"],
+    "Harrier EV": ["Adventure", "Fearless", "Empowered", "Empowered+ AWD"],
+    "Sierra": ["Pure", "Creative", "Accomplished", "Fearless"],
+    "Sierra EV": ["Creative", "Accomplished", "Fearless"]
+  },
+
+  "Mahindra": {
+    "Scorpio": ["REV 116", "2.6 DX CRDe", "2.6 SLE CRDe"],
+    "Scorpio Classic": ["S3", "S5", "S7", "S9", "S11"],
+    "Scorpio-N": ["Z2", "Z4", "Z6", "Z8", "Z8 Select", "Z8L"],
+    "Bolero": ["B4", "B6", "B6(O)"],
+    "Bolero Neo": ["N4", "N8", "N10"],
+    "XUV300": ["W2", "W4", "W6", "W8", "W8(O)"],
+    "XUV400": ["EC", "EL"],
+    "XUV700": ["MX", "AX3", "AX5", "AX7", "AX7L"],
+    "Thar": ["AX (O)", "LX"],
+    "Thar Roxx": ["AX3", "AX5", "AX7", "AX7L"],
+    "BE 6": ["Pack One", "Pack Two", "Pack Three"],
+    "XEV 9e": ["Pack One", "Pack Two", "Pack Three"]
+  },
+
+  "Toyota": {
+    "Fortuner": ["Fortuner 4X2", "Fortuner 4X4", "Fortuner Legender"],
+    "Innova Crysta": ["GX", "VX", "ZX"],
+    "Innova Hycross": ["E", "G", "GX", "VX", "ZX", "ZX(O)"],
+    "Glanza": ["E", "S", "V"],
+    "Urban Cruiser Taisor": ["E", "S", "G", "V"],
+    "Hyryder": ["E", "S", "G", "V"],
+    "Camry": ["Hybrid"],
+    "Vellfire": ["Executive Lounge"],
+    "Rumion": ["G", "V"]
+  },
+
+  "Honda": {
+    "City": ["V", "VX", "ZX"],
+    "City Hybrid e:HEV": ["V", "VX", "ZX"],
+    "Amaze": ["E", "S", "VX"],
+    "Elevate": ["SV", "V", "VX", "ZX"]
+  },
+
+  "Kia": {
+    "Seltos": ["HTE", "HTK", "HTK+", "HTX", "HTX+", "GTX", "GTX+", "X-Line"],
+    "Sonet": ["HTE", "HTK", "HTK+", "HTX", "HTX+", "GTX", "GTX+", "X-Line"],
+    "Carens": ["Premium", "Prestige", "Prestige+", "Luxury", "Luxury+"],
+    "Carnival": ["Premium", "Prestige"],
+    "EV6": ["GT Line"],
+    "EV9": ["GT Line"]
+  },
+
+  "MG Motor": {
+    "Hector": ["Style", "Super", "Smart", "Sharp", "Sharp Pro", "Blackstorm"],
+    "Astor": ["Style", "Super", "Smart", "Sharp"],
+    "Comet EV": ["Pace", "Play", "Plush"],
+    "ZS EV": ["Excite", "Exclusive", "Essence"],
+    "Gloster": ["Super", "Smart", "Sharp", "Savvy"],
+    "Windsor EV": ["Excite", "Exclusive", "Essence"]
+  },
+
+  "Skoda Auto": {
+    "Kushaq": ["Active", "Ambition", "Style", "Monte Carlo"],
+    "Slavia": ["Active", "Ambition", "Style", "Monte Carlo"],
+    "Kylaq": ["Classic", "Signature", "Signature+", "Prestige"],
+    "Superb": ["L&K"],
+    "Kodiaq": ["Sportline", "L&K"]
+  },
+
+  "Volkswagen": {
+    "Virtus": ["Comfortline", "Highline", "Topline", "GT"],
+    "Taigun": ["Comfortline", "Highline", "Topline", "GT"],
+    "Tiguan": ["Elegance"]
+  },
+
+  "Renault": {
+    "Kwid": ["RXE", "RXL", "RXT", "Climber"],
+    "Triber": ["RXE", "RXL", "RXT", "RXZ"],
+    "Kiger": ["RXE", "RXL", "RXT", "RXZ"]
+  },
+
+  "Nissan": {
+    "Magnite": ["XE", "XL", "XV", "XV Premium", "XV Premium (O)"]
+  },
+
+  "Citroen": {
+    "C3": ["Live", "Feel", "Shine"],
+    "C3 Aircross": ["You", "Plus", "Max"],
+    "eC3": ["Live", "Feel"],
+    "Basalt": ["Plus", "Max"]
+  },
+
+  "Jeep": {
+    "Compass": ["Sport", "Longitude", "Limited", "Trailhawk"],
+    "Meridian": ["Longitude", "Limited", "Limited (O)"],
+    "Wrangler": ["Rubicon"]
+  },
+
+  "Volvo": {
+    "XC40": ["Momentum", "Inscription", "Ultimate"],
+    "XC60": ["Inscription", "Ultimate"],
+    "XC90": ["Inscription", "Ultimate"],
+    "S90": ["Inscription"],
+    "C40 Recharge": ["Ultimate"]
+  },
+
+  "BMW": {
+    "3 Series": ["Sport", "Luxury Line", "M Sport"],
+    "5 Series": ["Sport", "Luxury Line", "M Sport"],
+    "X1": ["sDrive", "M Sport"],
+    "X3": ["xLine", "M Sport"],
+    "X5": ["xLine", "M Sport"],
+    "X7": ["M Sport"],
+    "i4": ["M50"],
+    "i7": ["M70"]
+  },
+
+  "Mercedes-Benz": {
+    "A-Class Limousine": ["Progressive", "AMG Line"],
+    "C-Class": ["Avantgarde", "AMG Line"],
+    "E-Class": ["Avantgarde", "AMG Line"],
+    "S-Class": ["Maybach"],
+    "GLA": ["Progressive", "AMG Line"],
+    "GLC": ["Avantgarde", "AMG Line"],
+    "GLE": ["Avantgarde", "AMG Line"],
+    "EQB": ["Progressive"],
+    "EQS": ["Maybach"]
+  },
+
+  "Audi": {
+    "A4": ["Premium", "Premium Plus", "Technology"],
+    "A6": ["Premium Plus", "Technology"],
+    "Q3": ["Premium", "Premium Plus", "Technology"],
+    "Q5": ["Premium Plus", "Technology"],
+    "Q7": ["Technology"],
+    "Q8": ["Technology"],
+    "e-tron GT": ["RS"]
+  },
+
+  "Lexus": {
+    "ES": ["Luxury", "Ultra Luxury"],
+    "NX": ["Exquisite", "Luxury"],
+    "RX": ["Luxury", "Ultra Luxury"],
+    "LX": ["Executive"]
+  },
+
+  "Land Rover": {
+    "Defender": ["S", "SE", "X-Dynamic SE", "X"],
+    "Discovery Sport": ["S", "SE", "HSE"],
+    "Range Rover Evoque": ["S", "SE", "Autobiography"],
+    "Range Rover Velar": ["S", "SE", "HSE"],
+    "Range Rover Sport": ["SE", "Autobiography"],
+    "Range Rover": ["Autobiography", "SV"]
+  },
+
+  "Porsche": {
+    "Macan": ["Base", "S", "GTS"],
+    "Cayenne": ["Base", "S", "GTS", "Turbo"],
+    "Panamera": ["Base", "4S", "Turbo"],
+    "911": ["Carrera", "Carrera S", "Turbo S"],
+    "Taycan": ["Base", "4S", "Turbo"]
+  },
+
+  "BYD": {
+    "Atto 3": ["Dynamic", "Premium", "Superior"],
+    "Seal": ["Premium", "Performance"],
+    "e6": ["Standard"]
+  },
+
+  "Isuzu": {
+    "D-Max V-Cross": ["Standard", "High"],
+    "MU-X": ["4x2", "4x4"]
+  },
+
+  "Force Motors": {
+    "Gurkha": ["5-Door", "3-Door"],
+    "Trax": ["Toofan", "Cruiser"]
+  }
+};
+ 
+/* ---------------- Supabase config ---------------- */
+/* Paste your own values here from Supabase → Project Settings → API */
+const SUPABASE_URL = "https://zmkckfzjepddbhmpdfch.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_JIzmpiyl6VMHubBJH35qtw_5QFny3a4";
+ 
+const isConfigured = !SUPABASE_URL.includes("PASTE_YOUR") && !SUPABASE_ANON_KEY.includes("PASTE_YOUR");
+let supabaseClient = null;
+let supabaseLoadError = null;
+try{
+  if(isConfigured){
+    if(!window.supabase || typeof window.supabase.createClient !== 'function'){
+      throw new Error("Supabase library didn't load (CDN blocked or offline).");
+    }
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+}catch(err){
+  supabaseLoadError = err;
+  console.error('Supabase init failed:', err);
+}
+
+if(!isConfigured || supabaseLoadError){
+  document.addEventListener('DOMContentLoaded', ()=>{
+    const warn = document.getElementById('configWarning');
+    if(warn){
+      if(supabaseLoadError){
+        warn.textContent = "Couldn't connect to Supabase (its script didn't load — check your internet connection or disable any ad-blocker/firewall blocking cdn.jsdelivr.net, then refresh).";
+      }
+      warn.classList.remove('hidden');
+    }
+  });
+}
+
+/* ---------------- Registration → vehicle-details lookup ---------------- */
+// This calls a Supabase Edge Function (server-side) that holds the real
+// vehicle-lookup API key as a secret. No API key is ever present in this
+// frontend code — see registration-lookup-edge-function.ts for the
+// server-side half, which you deploy separately with:
+//   supabase functions deploy registration-lookup
+// and configure with:
+//   supabase secrets set VEHICLE_API_KEY=your_actual_key_here
+const REG_LOOKUP_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/registration-lookup`;
+
+async function lookupVehicleByRegistration(regNumber){
+  const response = await fetch(REG_LOOKUP_FUNCTION_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+    },
+    body: JSON.stringify({ regNumber }),
+  });
+
+  if(!response.ok){
+    let details = '';
+    try { details = (await response.json()).error || ''; } catch(e){ /* ignore parse errors */ }
+    throw new Error(details || `Lookup failed (${response.status})`);
+  }
+  return response.json(); // expected: { regNumber, brand, model, year, fuelType, ... }
+}
+ 
+/* Rule tables: percentage adjustment applied to base market value */
+const RULES = {
+  engine:   {Excellent:3, Good:0, Fair:-8, Poor:-18},
+  accident: {None:0, Minor:-7, Major:-20},
+  service:  {Full:2, Partial:-3, None:-8},
+  tyre:     {New:2, Good:0, Worn:-4},
+  battery:  {New:1, Good:0, Weak:-3},
+  interior: {Excellent:2, Good:0, Average:-3, Poor:-7},
+  paint:    {Excellent:1, Good:0, "Minor Scratches":-3, "Major Damage":-8},
+  keys:     {Both:0, One:-1, None:-3},
+  rc:       {Yes:0, No:-15},
+  loan:     {Yes:0, No:-4},
+  insurance:{Valid:0, Expired:-2},
+  owner:    {"1st":0, "2nd":-4, "3rd+":-8}
+};
+ 
+/* Vehicle Health Score (0-100) */
+const SCORE_MAP = {
+
+  engine: {
+    Excellent: 98,
+    Good: 85,
+    Fair: 65,
+    Poor: 35
+  },
+
+  accident: {
+    None: 100,
+    Minor: 80,
+    Major: 45
+  },
+
+  service: {
+    Full: 100,
+    Partial: 80,
+    None: 50
+  },
+
+  tyre: {
+    New: 100,
+    Good: 82,
+    Worn: 55
+  },
+
+  battery: {
+    New: 100,
+    Good: 85,
+    Weak: 50
+  },
+
+  interior: {
+    Excellent: 98,
+    Good: 85,
+    Average: 65,
+    Poor: 40
+  },
+
+  paint: {
+    Excellent: 98,
+    Good: 85,
+    "Minor Scratches": 70,
+    "Major Damage": 40
+  },
+
+  keys: {
+    Both: 100,
+    One: 90,
+    None: 75
+  },
+
+  rc: {
+    Yes: 100,
+    No: 20
+  },
+
+  loan: {
+    No: 100,
+    Yes: 90
+  },
+
+  insurance: {
+    Valid: 100,
+    Expired: 80
+  },
+
+  owner: {
+    "1st": 100,
+    "2nd": 90,
+    "3rd+": 75
+  }
+
+};
+ 
+/* ---------------- Helpers ---------------- */
+const fmtINR = n => Math.round(n).toLocaleString('en-IN');
+const $ = id => document.getElementById(id);
+ 
+function parseReg(raw){
+  const reg = raw.toUpperCase().replace(/\s|-/g,'');
+  const m = reg.match(/^([A-Z]{2})(\d{1,2})([A-Z]{1,3})(\d{1,4})$/);
+  if(!m) return null;
+  return {state:m[1], code:m[2], series:m[3], number:m[4], full: `${m[1]} ${m[2]} ${m[3]} ${m[4]}`};
+}
+ 
+function populateBrands(){
+  const sel = $('brandSel');
+  Object.keys(CATALOG).forEach(b=>{
+    const o = document.createElement('option'); o.value=b; o.textContent=b; sel.appendChild(o);
+  });
+}
+function populateModels(brand){
+  const sel = $('modelSel'); sel.innerHTML = '<option value="">Select model</option>';
+  if(!brand || !CATALOG[brand]) return;
+  Object.keys(CATALOG[brand]).forEach(m=>{
+    const o = document.createElement('option'); o.value=m; o.textContent=m; sel.appendChild(o);
+  });
+}
+function populateVariants(brand, model){
+  const sel = $('variantSel'); sel.innerHTML = '<option value="">Select variant</option>';
+  if(!brand || !model || !CATALOG[brand] || !CATALOG[brand][model]) return;
+  CATALOG[brand][model].forEach(v=>{
+    const o = document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o);
+  });
+}
+ 
+async function findComps(brand, model, variant, year){
+  if(!supabaseClient){
+    throw new Error("Supabase isn't configured yet — add SUPABASE_URL and SUPABASE_ANON_KEY near the top of the script.");
+  }
+  const { data, error } = await supabaseClient
+    .from('sold_cars')
+    .select('*')
+    .eq('brand', brand)
+    .eq('model', model);
+ 
+  if(error) throw error;
+  const pool = data || [];
+  if(pool.length===0) return [];
+ 
+  let exactYear = pool.filter(d => d.year===year);
+  let exactVariant = exactYear.filter(d => d.variant===variant);
+  let comps = exactVariant.length>=2 ? exactVariant : exactYear;
+  if(comps.length < 3){
+    const widened = pool.filter(d => Math.abs(d.year-year)<=1);
+    if(widened.length > comps.length) comps = widened;
+  }
+  if(comps.length===0) comps = pool;
+  return comps;
+}
+ 
+function mean(arr){ return arr.reduce((a,b)=>a+b,0)/arr.length; }
+ 
+function renderGaugeFrame(pct){
+  const svg = $('gaugeSvg');
+  const cx=65, cy=68, r=55;
+  const angle = Math.PI - (pct/100)*Math.PI;
+  const nx = cx + r*0.82*Math.cos(angle);
+  const ny = cy - r*0.82*Math.sin(angle);
+  const color = pct>=88 ? '#5FAE83' : pct>=70 ? '#D8B44A' : '#D2695D';
+  svg.innerHTML = `
+    <path d="M ${cx-r} ${cy} A ${r} ${r} 0 0 1 ${cx+r} ${cy}" fill="none" stroke="rgba(255,255,255,0.14)" stroke-width="10" stroke-linecap="round"/>
+    <path d="M ${cx-r} ${cy} A ${r} ${r} 0 0 1 ${cx+r} ${cy}" fill="none" stroke="${color}" stroke-width="10" stroke-linecap="round"
+      stroke-dasharray="${(pct/100)*Math.PI*r} ${Math.PI*r}"/>
+    <circle cx="${cx}" cy="${cy}" r="4" fill="#F1EEE6"/>
+    <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="#F1EEE6" stroke-width="2.5" stroke-linecap="round"/>
+  `;
+}
+
+// Sweeps the needle from 0 up to the target confidence value, like a
+// dashboard gauge settling right after ignition.
+function drawGauge(pct){
+  const duration = 700;
+  const start = performance.now();
+  function frame(now){
+    const t = Math.min((now - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - t, 3);
+    renderGaugeFrame(pct * eased);
+    if(t < 1) requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+ 
+function renderOdometer(value){
+  const digits = String(Math.round(value)).split('');
+  const odo = $('odometer');
+  odo.innerHTML = '';
+  digits.forEach(d=>{
+    const box = document.createElement('div');
+    box.className='odo-digit';
+    box.textContent = d;
+    odo.appendChild(box);
+  });
+}
+ 
+// ============================================================
+// ALL CAR BRANDS — India Ex-Showroom Prices, 2026
+// Merged file combining every brand price-list generated so far.
+// All prices in INR. Current as of ~July 2026 (see each brand's
+// notes below for specific caveats / unverified fields).
+//
+// NOTE: Mahindra, Honda, Hyundai, and Kia price lists were created
+// earlier in this chat but are no longer available on disk to merge.
+// Ask again if you'd like those regenerated and added in.
+// ============================================================
+
+const AllCarPrices2026 = {
+
+  "Maruti Suzuki":   {
+
+    "S-Presso": {
+      "Base": 350000,
+      "Top": 525000
+    },
+
+    "Alto K10": {
+      "Base": 370000,
+      "Top": 545000
+    },
+
+    "Wagon R": {
+      "Base": 499000,
+      "Top": 589000
+    },
+
+    "Celerio": {
+      "Base": 470000,
+      "Top": 673000
+    },
+
+    "Swift": {
+      "Base": 579000,
+      "Top": 903000
+    },
+
+    "Baleno": {
+      "Base": 599000,
+      "Top": 917000
+    },
+
+    "Dzire": {
+      "Base": 626000,
+      "Top": 972000 // approx, exact top variant not confirmed
+    },
+
+    "Fronx": {
+      "Base": 685000,
+      "Top": 1198000
+    },
+
+    "Brezza": {
+      "Base": 826000,
+      "Top": 1414000
+    },
+
+    "Ertiga": {
+      "Base": 880000,
+      "Top": null // not verified
+    },
+
+    "XL6": {
+      "Base": 1157000,
+      "Top": 1452000
+    },
+
+    "Grand Vitara": {
+      "Base": 1077000,
+      "Top": 1432000
+    },
+
+    "Jimny": {
+      "Base": 1239000,
+      "Top": 1452000
+    },
+
+    "Victoris": {
+      "Base": 1049000,
+      "Top": null // not verified
+    },
+
+    "e Vitara (EV)": {
+      "Base (BaaS scheme, w/o battery)": 1099000,
+      "Base (full ex-showroom)": 1599000,
+      "Top": 2001000
+    },
+
+    "Invicto": {
+      "Base": 2497000,
+      "Top": 2861000
+    },
+
+    "Eeco": {
+      "Base": null, // not verified
+      "Top": null   // not verified
+    }
+
+  },
+
+  "Audi":   {
+
+    "Q3 (incl. Sportback)": {
+      "Base": 4367000,
+      "Top": 5300000
+    },
+
+    "A4": {
+      "Base": 4688000,
+      "Top": 5583000
+    },
+
+    "A6": {
+      "Base": 6481000,
+      "Top": 7166000
+    },
+
+    "Q5": {
+      "Base": 6555000,
+      "Top": 7073000
+    },
+
+    "Q7": {
+      "Base": 8717000,
+      "Top": 9615000
+    },
+
+    "Q8": {
+      "Base": 11300000,
+      "Top": null // not verified (base petrol variant only clearly sourced)
+    },
+
+    "Q8 e-tron (electric)": {
+      "Base": 11900000,
+      "Top": null // not verified
+    },
+
+    "SQ8": {
+      "Base": 17800000,
+      "Top": 17800000 // sold in single variant
+    },
+
+    "RS Q8 Performance": {
+      "Base": 23400000,
+      "Top": 23400000 // sold in single variant
+    },
+
+    "e-tron GT (electric)": {
+      "Base": 17200000,
+      "Top": 17200000 // sold in single variant
+    }
+
+  },
+
+  "BMW":   {
+
+    "2 Series Gran Coupe": {
+      "Base": 4580000,
+      "Top": 4690000
+    },
+
+    "X1 (petrol/diesel)": {
+      "Base": 5090000,
+      "Top": 5430000
+    },
+
+    "iX1 (electric)": {
+      "Base": 4990000,
+      "Top": 5220000
+    },
+
+    "3 Series": {
+      "Base": 6270000,
+      "Top": 7710000 // top includes M340i performance variant
+    },
+
+    "5 Series": {
+      "Base": 7660000,
+      "Top": 8150000
+    },
+
+    "i4 (electric)": {
+      "Base": 7250000,
+      "Top": 7750000
+    },
+
+    "i5 (electric)": {
+      "Base": 12000000,
+      "Top": 12000000 // sold in single variant
+    },
+
+    "i7 (electric)": {
+      "Base": 20500000,
+      "Top": 25800000
+    },
+
+    "X3": {
+      "Base": 6990000,
+      "Top": 7450000
+    },
+
+    "X4": {
+      "Base": null, // not verified
+      "Top": null   // not verified
+    },
+
+    "X5": {
+      "Base": 10000000,
+      "Top": 10500000
+    },
+
+    "iX (electric)": {
+      "Base": 14000000,
+      "Top": 15000000
+    },
+
+    "X6": {
+      "Base": 17800000,
+      "Top": 17800000 // sold in single fully-loaded variant
+    },
+
+    "X7": {
+      "Base": 12600000,
+      "Top": 13600000
+    },
+
+    "XM": {
+      "Base": 25500000,
+      "Top": 25500000 // sold in single variant
+    },
+
+    "Z4": {
+      "Base": null, // not verified
+      "Top": null   // not verified
+    },
+
+    "M2": {
+      "Base": 10400000,
+      "Top": 16600000
+    },
+
+    "M4 Competition": {
+      "Base": null, // not verified
+      "Top": null   // not verified
+    },
+
+    "M5": {
+      "Base": 20500000,
+      "Top": 20800000
+    },
+
+    "M8 Competition": {
+      "Base": 23800000,
+      "Top": 25500000
+    }
+
+  },
+
+  "BYD":   {
+
+    "Atto 3 (electric)": {
+      "Base": 2499000,
+      "Top": 3449000
+    },
+
+    "eMAX 7 (electric)": {
+      "Base": 2690000,
+      "Top": 2990000
+    },
+
+    "Seal (electric)": {
+      "Base": 4150000,
+      "Top": 5365000
+    },
+
+    "Sealion 7 (electric)": {
+      "Base": 4940000,
+      "Top": 5590000
+    }
+
+  },
+
+  "Force Motors":   {
+
+    "Gurkha (3-door & 5-door)": {
+      "Base": 1631000,
+      "Top": 1763000
+    },
+
+    "Trax Cruiser": {
+      "Base": 1232000,
+      "Top": null // not verified — multiple seating configs (9/13 seater) with varying prices
+    },
+
+    "Urbania": {
+      "Base": 2634000,
+      "Top": 3183000
+    },
+
+    "Traveller": {
+      "Base": 1533316,   // lowest listed official ex-showroom config (Non-AC)
+      "Top": null        // not verified — dozens of body/seating/wheelbase configurations
+    }
+
+  },
+
+  "Isuzu":   {
+
+    "D-Max (regular cab pickup)": {
+      "Base": 1019000,
+      "Top": 1088000
+    },
+
+    "S-CAB": {
+      "Base": 1044000,
+      "Top": 1275000
+    },
+
+    "S-CAB Z": {
+      "Base": 1590000,
+      "Top": 1590000   // sold in single variant
+    },
+
+    "D-Max V-Cross (incl. Hi-Lander)": {
+      "Base": 2550000,
+      "Top": 3028000
+    },
+
+    "MU-X": {
+      "Base": 3453000,
+      "Top": 3771000
+    }
+
+  },
+
+  "Jeep":   {
+
+    "Compass": {
+      "Base": 1799000,
+      "Top": 3095000
+    },
+
+    "Meridian": {
+      "Base": 2333000,
+      "Top": 3966000
+    },
+
+    "Wrangler": {
+      "Base": 6458000,
+      "Top": 7031000
+    },
+
+    "Grand Cherokee": {
+      "Base": 6300000,
+      "Top": 6300000   // sold in single variant
+    }
+
+  },
+
+  "Land Rover":   {
+
+    "Discovery Sport": {
+      "Base": 6337000,
+      "Top": null // not verified
+    },
+
+    "Discovery": {
+      "Base": null, // not verified
+      "Top": null   // not verified
+    },
+
+    "Defender": {
+      "Base": 10500000,
+      "Top": 26200000   // Defender Octa
+    },
+
+    "Range Rover Evoque": {
+      "Base": 6486000,
+      "Top": null // not verified
+    },
+
+    "Range Rover Velar": {
+      "Base": 8590000,
+      "Top": 8990000    // Velar Autobiography
+    },
+
+    "Range Rover Sport": {
+      "Base": 14300000,
+      "Top": 23500000   // excludes special-run Sport SV (~2.05 Cr launch price reported separately)
+    },
+
+    "Range Rover": {
+      "Base": 24000000,
+      "Top": 45500000
+    }
+
+  },
+
+  "Lexus":   {
+
+    "ES (300h Hybrid + 500e EV)": {
+      "Base": 6400000,
+      "Top": 8999000   // ES 500e EV
+    },
+
+    "NX": {
+      "Base": 6659000,
+      "Top": 7340000
+    },
+
+    "RX": {
+      "Base": 8999000,   // RX 350h Exquisite
+      "Top": 12111000    // RX 500h F-Sport+
+    },
+
+    "LM": {
+      "Base": 21500000,
+      "Top": 26900000
+    },
+
+    "LX": {
+      "Base": 28000000,
+      "Top": 29200000    // LX 500d Overtrail Edition
+    }
+
+  },
+
+  "Mercedes-Benz":   {
+
+    "A-Class Limousine": {
+      "Base": 4450000,
+      "Top": null // not verified
+    },
+
+    "GLA": {
+      "Base": 5180000,
+      "Top": null // not verified
+    },
+
+    "CLA Electric": {
+      "Base": 5500000,   // Progressive Line
+      "Top": 6400000     // Launch Edition
+    },
+
+    "C-Class": {
+      "Base": 5990000,
+      "Top": 6560000
+    },
+
+    "E-Class": {
+      "Base": 8000000,
+      "Top": 9350000
+    },
+
+    "GLC": {
+      "Base": 7700000,
+      "Top": null // not verified
+    },
+
+    "GLE": {
+      "Base": null, // not verified
+      "Top": null   // not verified
+    },
+
+    "GLS": {
+      "Base": 13200000,
+      "Top": 14300000
+    },
+
+    "Maybach GLS": {
+      "Base": 27500000,
+      "Top": 41000000
+    },
+
+    "S-Class (PHEV, 2026 facelift)": {
+      "Base": 22000000,
+      "Top": null // launched at single starting price; top-spec not yet detailed
+    },
+
+    "G-Class": {
+      "Base": 29000000,
+      "Top": null // not verified (conflicting sources report anywhere from 2.9 Cr to 4.3 Cr for G-Class variants)
+    },
+
+    "G-Class Electric (EQG)": {
+      "Base": null, // not verified
+      "Top": null   // not verified
+    },
+
+    "SL / Maybach SL": {
+      "Base": null, // not verified
+      "Top": 43000000 // Maybach SL 680 Monogram Series
+    },
+
+    "EQS": {
+      "Base": 16300000,
+      "Top": null // not verified
+    },
+
+    "EQS SUV": {
+      "Base": 12800000,
+      "Top": null // not verified
+    },
+
+    "EQA": {
+      "Base": 6720000,
+      "Top": null // not verified
+    },
+
+    "EQB": {
+      "Base": null, // not verified
+      "Top": null   // not verified
+    },
+
+    "V-Class": {
+      "Base": 14000000,
+      "Top": null // not verified
+    }
+
+  },
+
+  "MG Motor":   {
+
+    "Comet EV": {
+      "Base": 631000,
+      "Top": 973000
+    },
+
+    "Astor": {
+      "Base": 979000,
+      "Top": 1749000
+    },
+
+    "Hector (2026 Facelift)": {
+      "Base": 1199000,
+      "Top": 1899000
+    },
+
+    "Hector Plus (2026 Facelift, 6S/7S)": {
+      "Base": 1429000,
+      "Top": 1975000 // top diesel Sharp Pro 7S variant
+    },
+
+    "Windsor EV": {
+      "Base": 1410000,
+      "Top": 1899800 // Essence Pro
+    },
+
+    "ZS EV": {
+      "Base": 1799000,
+      "Top": null // exact top-spec long range variant not verified
+    },
+
+    "Gloster": {
+      "Base": 3833000,
+      "Top": 4474000
+    },
+
+    "Majestor": {
+      "Base": 4099000,
+      "Top": 4499000
+    },
+
+    "M9": {
+      "Base": 7590000,
+      "Top": null // exact top variant not verified
+    },
+
+    "Cyberster": {
+      "Base": 7590000,
+      "Top": 7750000 // GT dual-motor
+    }
+
+  },
+
+  "Porsche":   {
+
+    "Macan (petrol)": {
+      "Base": 8965000,
+      "Top": null // not verified — wide variance across sources (89.65L to 1.23Cr quoted as "base")
+    },
+
+    "Macan EV / Macan Turbo EV": {
+      "Base": 12200000,
+      "Top": 16900000
+    },
+
+    "Cayenne (petrol)": {
+      "Base": 13900000,
+      "Top": 25700000 // Cayenne Turbo GT
+    },
+
+    "Cayenne Coupe": {
+      "Base": 14400000,
+      "Top": null // not verified
+    },
+
+    "Cayenne Electric": {
+      "Base": 17600000,
+      "Top": 22600000
+    },
+
+    "Panamera": {
+      "Base": 17100000,
+      "Top": 23300000
+    },
+
+    "Taycan": {
+      "Base": 16700000,
+      "Top": 27000000
+    },
+
+    "911": {
+      "Base": 20000000,   // Carrera
+      "Top": 38000000     // Turbo S
+    },
+
+    "911 GT3 / GT3 RS": {
+      "Base": 33200000,
+      "Top": null // not verified — GT3 RS pricing not confirmed for India as of July 2026
+    },
+
+    "718 Boxster / Cayman": {
+      "Base": null, // production of petrol 718 halted (Oct 2025); electric successor not yet launched in India
+      "Top": null
+    }
+
+  },
+
+  "Renault":   {
+
+    "Kwid": {
+      "Base": 453000,
+      "Top": 585000
+    },
+
+    "Triber": {
+      "Base": 581000,
+      "Top": 869000
+    },
+
+    "Kiger": {
+      "Base": 581000,
+      "Top": 1123000
+    },
+
+    "Duster (new-gen)": {
+      "Base": 1049000,
+      "Top": 1869000
+    }
+
+  },
+
+  "Skoda":   {
+
+    "Kylaq": {
+      "Base": 759000,
+      "Top": 1299000
+    },
+
+    "Slavia": {
+      "Base": 1000000,
+      "Top": 1819000
+    },
+
+    "Kushaq": {
+      "Base": 1069000,
+      "Top": 1899000
+    },
+
+    "Kodiaq": {
+      "Base": 3699000,
+      "Top": 4699000
+    },
+
+    "Kodiaq RS": {
+      "Base": 6699000,
+      "Top": 6699000   // single fully-loaded variant, limited run (50 units, sold out)
+    }
+
+  },
+
+  "Volkswagen":   {
+
+    "Virtus": {
+      "Base": 1050000,
+      "Top": 1900000
+    },
+
+    "Taigun": {
+      "Base": 1100000,
+      "Top": 1930000
+    },
+
+    "Tiguan R-Line": {
+      "Base": 4711000,
+      "Top": 4711000   // sold in single variant
+    },
+
+    "Tayron R-Line": {
+      "Base": 4699000,
+      "Top": 4699000   // sold in single variant
+    },
+
+    "Golf GTI": {
+      "Base": 5091000,
+      "Top": 5091000   // CBU import, single variant
+    }
+
+  },
+
+  "Volvo":   {
+
+    "EX30 (electric)": {
+      "Base": 4100000,
+      "Top": 4100000   // sold in single variant
+    },
+
+    "XC60": {
+      "Base": 6890000,
+      "Top": 7190000
+    },
+
+    "EC40 (electric)": {
+      "Base": 5900000,
+      "Top": 5900000   // sold in single variant
+    },
+
+    "XC90": {
+      "Base": 9697000,
+      "Top": 9880000
+    }
+
+  },
+
+  "Tata Motors":   {
+
+    "Tiago": {
+      "Base": 470000,
+      "Top": 855000
+    },
+
+    "Tiago EV": {
+      "Base": 699000,
+      "Top": 1189000
+    },
+
+    "Tigor": {
+      "Base": 554000,
+      "Top": 887000
+    },
+
+    "Altroz": {
+      "Base": 665000,
+      "Top": 1095000
+    },
+
+    "Punch": {
+      "Base": 559000,
+      "Top": 1067000
+    },
+
+    "Punch EV": {
+      "Base": 999000,
+      "Top": 1400000 // approx — old-gen discontinued Feb 2026, updated version pricing not fully verified
+    },
+
+    "Nexon": {
+      "Base": 739000,
+      "Top": 1422000
+    },
+
+    "Nexon EV": {
+      "Base": 1245000,
+      "Top": 1700000 // not verified for exact 2026 change
+    },
+
+    "Curvv": {
+      "Base": 1000000,
+      "Top": 1700000 // not verified for exact 2026 change
+    },
+
+    "Curvv EV": {
+      "Base": 1750000,
+      "Top": 2195000 // heavy dealer discounts reported April 2026, ex-showroom sticker not confirmed changed
+    },
+
+    "Harrier": {
+      "Base": 1560000,
+      "Top": 2639000
+    },
+
+    "Harrier EV": {
+      "Base": 2149000,
+      "Top": 3224000
+    },
+
+    "Safari": {
+      "Base": 1329000,
+      "Top": 2639000
+    },
+
+    "Sierra": {
+      "Base": 1149000,
+      "Top": 2129000 // new model, launched 2026
+    },
+
+    "Sierra EV": {
+      "Base": 1879000,
+      "Top": 2599000 // launched 30 June 2026
+    }
+
+  },
+
+};
+
+/* ---------------- Original (ex-showroom) price estimator ---------------- */
+// Real, year-wise ex-showroom prices for a handful of models — used as the primary
+// source when available, since it's actual recorded pricing rather than an estimate.
+const EX_SHOWROOM = {
+  "Maruti Suzuki": {
+    "Swift": {
+      "2020": { "LXI": 519000, "VXI": 598000, "ZXI": 645000, "ZXI+": 702000 },
+      "2021": { "LXI": 534000, "VXI": 612000, "ZXI": 660000, "ZXI+": 718000 },
+      "2022": { "LXI": 564000, "VXI": 645000, "ZXI": 692000, "ZXI+": 751000 },
+      "2023": { "LXI": 599500, "VXI": 684000, "ZXI": 731000, "ZXI+": 789000 },
+      "2024": { "LXI": 649000, "VXI": 734000, "ZXI": 781000, "ZXI+": 839000 },
+      "2025": { "LXI": 654000, "VXI": 739000, "ZXI": 786000, "ZXI+": 844000 },
+      "2026": { "LXI": 669000, "VXI": 754000, "ZXI": 801000, "ZXI+": 859000 }
+    }
+  },
+
+  "Toyota": {
+    "Fortuner": {
+      "2020": { "Fortuner 4X2": 3067000, "Fortuner 4X4": 3443000 },
+      "2021": { "Fortuner 4X2": 3248000, "Fortuner 4X4": 3743000 },
+      "2022": { "Fortuner 4X2": 3259000, "Fortuner 4X4": 3793000 },
+      "2023": { "Fortuner 4X2": 3314000, "Fortuner 4X4": 3843000 },
+      "2024": { "Fortuner 4X2": 3384000, "Fortuner 4X4": 3913000 },
+      "2025": { "Fortuner 4X2": 3416000, "Fortuner 4X4": 4237000 },
+      "2026": { "Fortuner 4X2": 3476000, "Fortuner 4X4": 4312000 }
+    },
+    "Fortuner Legender": {
+      "2021": { "2WD Turbo": 3758000, "4WD Turbo": 0 },
+      "2022": { "2WD Turbo": 3912000, "4WD Turbo": 4336000 },
+      "2023": { "2WD Turbo": 4020000, "4WD Turbo": 4420000 },
+      "2024": { "2WD Turbo": 4151000, "4WD Turbo": 4554000 },
+      "2025": { "2WD Turbo": 4217000, "4WD Turbo": 4746000 },
+      "2026": { "2WD Turbo": 4292000, "4WD Turbo": 4829000 }
+    }
+  },
+
+  "Mahindra": {
+    "Scorpio": {
+      "2020": { "REV 116": 1225000, "2.6 DX CRDe": 1080000, "2.6 CRDe": 1165000 },
+      "2021": { "REV 116": 1249000, "2.6 DX CRDe": 1105000, "2.6 CRDe": 1190000 },
+      "2022": { "REV 116": 1269000, "2.6 DX CRDe": 1129000, "2.6 CRDe": 1215000 },
+      "2023": { "REV 116": 1299000, "2.6 DX CRDe": 1159000, "2.6 CRDe": 1249000 },
+      "2024": { "REV 116": 1359000, "2.6 DX CRDe": 1219000, "2.6 CRDe": 1309000 },
+      "2025": { "REV 116": 1369000, "2.6 DX CRDe": 1229000, "2.6 CRDe": 1319000 },
+      "2026": { "REV 116": 1389000, "2.6 DX CRDe": 1249000, "2.6 CRDe": 1339000 }
+    },
+    "Scorpio Classic S11": {
+      "2022": { "Diesel Turbo 7 STR": 1549000, "Diesel Turbo 9 STR": 1549000 },
+      "2023": { "Diesel Turbo 7 STR": 1619000, "Diesel Turbo 9 STR": 1619000 },
+      "2024": { "Diesel Turbo 7 STR": 1670000, "Diesel Turbo 9 STR": 1670000 },
+      "2025": { "Diesel Turbo 7 STR": 1680000, "Diesel Turbo 9 STR": 1680000 },
+      "2026": { "Diesel Turbo 7 STR": 1699900, "Diesel Turbo 9 STR": 1699900 }
+    }
+
+  },
+
+  "Honda": {
+    "City": {
+      "2020": { "V": 989000, "VX": 1133000, "ZX": 1295000 },
+      "2021": { "V": 1089000, "VX": 1229000, "ZX": 1359000 },
+      "2022": { "V": 1116000, "VX": 1257000, "ZX": 1399000 },
+      "2023": { "V": 1149000, "VX": 1289000, "ZX": 1439000 },
+      "2024": { "V": 1199000, "VX": 1330000, "ZX": 1465000 },
+      "2025": { "V": 1229000, "VX": 1369000, "ZX": 1499000 },
+      "2026": { "V": 1329900, "VX": 1429900, "ZX": 1525900 }
+    },
+    "Amaze": {
+      "2020": { "E": 609000, "S": 689000, "VX": 779000 },
+      "2021": { "E": 632000, "S": 712000, "VX": 802000 },
+      "2022": { "E": 655000, "S": 735000, "VX": 825000 },
+      "2023": { "E": 682000, "S": 762000, "VX": 852000 },
+      "2024": { "E": 709000, "S": 789000, "VX": 879000 },
+      "2025": { "E": 726000, "S": 806000, "VX": 896000 },
+      "2026": { "E": 697700, "S": 751390, "VX": 851990 }
+    }
+  },
+
+  // Tata's own price revisions only give us Base/Top per model per year (not a
+  // full per-variant breakdown like the tables above). We map Base -> the
+  // model's first CATALOG variant and Top -> its last CATALOG variant, so any
+  // other variant (e.g. Tiago's "XM") still falls through to the
+  // AllCarPrices2026-based approximation further down — which is the correct
+  // behaviour since we don't have real data for those in-between variants.
+  // 2024 figures are ESTIMATED by projecting the verified 2025 figures backward
+  // at PRICE_TREND_PA (since Tata doesn't publish old price lists) — everything
+  // from 2025 onward is from real, verified sources (CSD price lists / GST 2.0
+  // revision coverage / official Tata Motors pricing pages).
+  // Curvv EV and Harrier EV only launched in 2025, so they have no 2024 price.
+  // Sierra / Sierra EV are new for 2026 only.
+  "Tata Motors": {
+    "Tiago": {
+      "2024": { "XE": 437000, "XZA+": 775000 },
+      "2025": { "XE": 457000, "XZA+": 810000 },
+      "2026": { "XE": 470000, "XZA+": 855000 }
+    },
+    "Tiago EV": {
+      "2024": { "XE": 765000, "XZ+ Tech Lux": 1340000 },
+      "2025": { "XE": 799000, "XZ+ Tech Lux": 1400000 },
+      "2026": { "XE": 699000, "XZ+ Tech Lux": 1189000 }
+    },
+    "Tigor": {
+      "2024": { "XE": 524000, "XZA+": 836000 },
+      "2025": { "XE": 548000, "XZA+": 874000 },
+      "2026": { "XE": 554000, "XZA+": 887000 }
+    },
+    "Altroz": {
+      "2024": { "XE": 603000, "XZO": 1006000 },
+      "2025": { "XE": 630000, "XZO": 1051000 },
+      "2026": { "XE": 665000, "XZO": 1095000 }
+    },
+    "Punch": {
+      "2024": { "Pure": 526000, "Fearless+": 884000 },
+      "2025": { "Pure": 550000, "Fearless+": 924000 },
+      "2026": { "Pure": 559000, "Fearless+": 1067000 }
+    },
+    "Punch EV": {
+      "2024": { "Smart": 956000, "Empowered+": 1340000 },
+      "2025": { "Smart": 999000, "Empowered+": 1400000 },
+      "2026": { "Smart": 999000, "Empowered+": 1400000 }
+    },
+    "Nexon": {
+      "2024": { "Smart": 746000, "Empowered": 1361000 },
+      "2025": { "Smart": 780000, "Empowered": 1422000 },
+      "2026": { "Smart": 739000, "Empowered": 1422000 }
+    },
+    "Nexon EV": {
+      "2024": { "Creative": 1191000, "Empowered+": 1627000 },
+      "2025": { "Creative": 1245000, "Empowered+": 1700000 },
+      "2026": { "Creative": 1245000, "Empowered+": 1700000 }
+    },
+    "Curvv": {
+      "2024": { "Smart": 957000, "Empowered": 1627000 }, // launched Sept 2024
+      "2025": { "Smart": 1000000, "Empowered": 1700000 },
+      "2026": { "Smart": 1000000, "Empowered": 1700000 }
+    },
+    "Curvv EV": {
+      "2025": { "Creative 45": 1750000, "Empowered+ 55": 2195000 }, // launched Jan 2025 — no 2024 price
+      "2026": { "Creative 45": 1750000, "Empowered+ 55": 2195000 }
+    },
+    "Harrier": {
+      "2024": { "Smart": 1495000, "Fearless+ AS": 2304000 },
+      "2025": { "Smart": 1562034, "Fearless+ AS": 2407621 },
+      "2026": { "Smart": 1560000, "Fearless+ AS": 2639000 }
+    },
+    "Harrier EV": {
+      "2025": { "Adventure": 2149000, "Empowered+ AWD": 2899000 }, // launched Jan 2025 — no 2024 price
+      "2026": { "Adventure": 2149000, "Empowered+ AWD": 3224000 }
+    },
+    "Safari": {
+      "2024": { "Smart": 1424000, "Accomplished+": 2375000 },
+      "2025": { "Smart": 1487586, "Accomplished+": 2481708 },
+      "2026": { "Smart": 1329000, "Accomplished+": 2639000 }
+    },
+    "Sierra": {
+      "2026": { "Pure": 1149000, "Fearless": 2129000 } // new model, launched 2026 only
+    },
+    "Sierra EV": {
+      "2026": { "Creative": 1879000, "Fearless": 2599000 } // launched 30 June 2026 only
+    }
+  }
+};
+
+// Only a few models above have real year-wise data. For everything else, we fall
+// back to an approximation using AllCarPrices2026's current (~2026) Base/Top range:
+//   1) find the model's Base/Top range (tolerating small name differences vs. CATALOG,
+//      e.g. "WagonR" vs "Wagon R"),
+//   2) place the chosen variant somewhere in that range based on its position in the
+//      model's variant list in CATALOG (higher trims cost more),
+//   3) project that 2026 price back (or forward) to the requested registration year
+//      using a per-brand/per-model annual price-trend rate (see DEPRECIATION_RATES
+//      below) instead of one flat rate for every car.
+
+// Annual ex-showroom price-trend / depreciation-basis rates, used to project a
+// model's price backward or forward across registration years. Mass-market
+// Japanese/Indian brands tend to hold their price line steadier; premium,
+// luxury, and EV segments move faster (rapid tech turnover, larger discounting).
+// Model-level entries override brand-level entries, which override the default.
+const DEPRECIATION_RATES = {
+  default: 0.045, // fallback: ~4.5%/year, used only if brand isn't listed below
+
+  brand: {
+    "Maruti Suzuki": 0.035,
+    "Toyota":        0.035,
+    "Honda":         0.038,
+    "Hyundai":       0.040,
+    "Tata Motors":   0.042,
+    "Mahindra":      0.045,
+    "Kia":           0.042,
+    "MG Motor":      0.045,
+    "Skoda Auto":    0.050,
+    "Volkswagen":    0.050,
+    "Renault":       0.040,
+    "Nissan":        0.040,
+    "Citroen":       0.045,
+    "Jeep":          0.050,
+    "Isuzu":         0.040,
+    "Force Motors":  0.040,
+    "Volvo":         0.055,
+    "Lexus":         0.055,
+    "BMW":           0.060,
+    "Mercedes-Benz": 0.060,
+    "Audi":          0.060,
+    "Land Rover":    0.065,
+    "Porsche":       0.065,
+    "BYD":           0.070
+  },
+
+  // Specific models that are known to buck their brand's usual trend
+  // (e.g. models with unusually strong or weak resale demand).
+  model: {
+    "Toyota":         { "Fortuner": 0.030, "Innova": 0.030, "Innova Hycross": 0.030 },
+    "Maruti Suzuki":  { "Jimny": 0.030 },
+    "Mahindra":       { "Thar": 0.030, "Thar Roxx": 0.030 },
+    "Hyundai":        { "Creta": 0.035 }
+  }
+};
+
+// EVs tend to see faster price/tech movement than their brand's usual petrol/diesel line-up.
+const EV_RATE_BUMP = 0.015;
+
+function isElectricModel(model){
+  return /\(ev\)|\(electric\)/i.test(String(model));
+}
+
+function getPriceTrendRate(brand, model){
+  const modelOverride = DEPRECIATION_RATES.model[brand] && DEPRECIATION_RATES.model[brand][model];
+  if(modelOverride != null) return modelOverride;
+
+  const brandRate = DEPRECIATION_RATES.brand[brand] != null ? DEPRECIATION_RATES.brand[brand] : DEPRECIATION_RATES.default;
+  return isElectricModel(model) ? brandRate + EV_RATE_BUMP : brandRate;
+}
+
+function normalizeKey(s){
+  return String(s).toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+// CATALOG and AllCarPrices2026 don't always spell brand names the same way
+// (e.g. CATALOG's "Skoda Auto" vs AllCarPrices2026's "Skoda"). Add known aliases here.
+const BRAND_ALIASES = {
+  "Skoda Auto": "Skoda"
+};
+
+function findBrandTable(brand){
+  if(AllCarPrices2026[brand]) return AllCarPrices2026[brand];
+  if(BRAND_ALIASES[brand] && AllCarPrices2026[BRAND_ALIASES[brand]]) return AllCarPrices2026[BRAND_ALIASES[brand]];
+  const target = normalizeKey(brand);
+  const matchKey = Object.keys(AllCarPrices2026).find(k => normalizeKey(k) === target);
+  return matchKey ? AllCarPrices2026[matchKey] : null;
+}
+
+function findPriceEntry(brandTable, model){
+  if(!brandTable) return null;
+  if(brandTable[model]) return brandTable[model];
+  const target = normalizeKey(model);
+  const matchKey = Object.keys(brandTable).find(k => normalizeKey(k) === target);
+  return matchKey ? brandTable[matchKey] : null;
+}
+
+function estimateOriginalPrice(brand, model, variant, year){
+  // 1) Prefer real recorded prices from EX_SHOWROOM, if this brand/model is listed there.
+  const modelTable = EX_SHOWROOM[brand] && EX_SHOWROOM[brand][model];
+  if(modelTable){
+    const years = Object.keys(modelTable).map(Number);
+    if(years.length){
+      if(modelTable[year] && modelTable[year][variant] != null){
+        return modelTable[year][variant];
+      }
+      let nearestYear = null, nearestDiff = Infinity;
+      years.forEach(y=>{
+        if(modelTable[y][variant] != null){
+          const diff = Math.abs(y - year);
+          if(diff < nearestDiff){ nearestDiff = diff; nearestYear = y; }
+        }
+      });
+      if(nearestYear !== null){
+        const basePrice = modelTable[nearestYear][variant];
+        const rate = getPriceTrendRate(brand, model);
+        return basePrice * Math.pow(1 + rate, year - nearestYear);
+      }
+    }
+  }
+
+  // 2) Fall back to an approximation using AllCarPrices2026's current (2026) Base/Top range.
+  const priceEntry = findPriceEntry(findBrandTable(brand), model);
+  if(!priceEntry) return null;
+
+  const numericValues = Object.values(priceEntry).filter(v => typeof v === 'number');
+  if(numericValues.length === 0) return null;
+  const base = Math.min(...numericValues);
+  const top = Math.max(...numericValues);
+
+  const variantsForModel = (CATALOG[brand] && CATALOG[brand][model]) || [];
+  const idx = variantsForModel.indexOf(variant);
+  const ratio = (variantsForModel.length > 1 && idx >= 0) ? idx / (variantsForModel.length - 1) : 0.5;
+  const price2026 = base + (top - base) * ratio;
+
+  const yearsFromNow = year - 2026;
+  const rate = getPriceTrendRate(brand, model);
+  return price2026 * Math.pow(1 + rate, yearsFromNow);
+}
+
+function renderFoundBox(){
+  const brand = $('brandSel').value;
+  const model = $('modelSel').value;
+  const variant = $('variantSel').value;
+  const year = parseInt($('yearInput').value, 10);
+  const originalPrice = estimateOriginalPrice(brand, model, variant, year);
+  const box = $('foundBox');
+
+  if(!originalPrice){
+    $('foundSub').textContent = "This model/variant isn't in our price-history table yet.";
+    box.innerHTML = `<div class="resale-card"><p class="comp-note" style="margin:0;">Add <b>${brand} ${model}</b> to <code>AllCarPrices2026</code> in the code to enable this lookup.</p></div>`;
+    return;
+  }
+
+  $('foundSub').textContent = `System found the original ex-showroom price for this ${model}, based on the registration year you entered (${year}).`;
+  box.innerHTML = `
+    <div class="found-box">
+      <div class="fb-label">Estimated original price in ${year}</div>
+      <div class="fb-price" id="fbPriceValue">₹0</div>
+      <div class="fb-sub">Calculated from the registration year you entered — not a fixed year</div>
+    </div>`;
+  countUpText($('fbPriceValue'), originalPrice, 800);
+}
+
+// Animates a rupee figure counting up from 0 to its target value.
+function countUpText(el, target, duration){
+  const start = performance.now();
+  function frame(now){
+    const t = Math.min((now - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - t, 3);
+    el.textContent = '₹' + fmtINR(target * eased);
+    if(t < 1) requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ---------------- Price history: original price vs. today's resale value ---------------- */
+function computeDepreciation(originalPrice, regYear, currentValue){
+  if(!originalPrice) return null;
+  const now = new Date();
+  const years = Math.max(now.getFullYear() + (now.getMonth()/12) - regYear, 0.25);
+  const deltaAmt = currentValue - originalPrice;
+  const deltaPct = (deltaAmt / originalPrice) * 100;
+  const annualPct = (Math.pow(currentValue / originalPrice, 1/years) - 1) * 100;
+  return { years, deltaAmt, deltaPct, annualPct };
+}
+
+function renderResaleCard(){
+  const box = $('resaleCard');
+  const r = lastReport;
+  const originalPrice = estimateOriginalPrice(r.brand, r.model, r.variant, r.year);
+
+  if(!originalPrice){
+    box.innerHTML = `<div class="resale-card"><p class="comp-note" style="margin:0;">This model isn't in the price-history table yet, so an original-price comparison can't be shown.</p></div>`;
+    return;
+  }
+
+  const dep = computeDepreciation(originalPrice, r.year, r.finalValue);
+  const yearsTxt = dep.years >= 1 ? `${dep.years.toFixed(1)} years` : `${Math.round(dep.years*12)} months`;
+  const trendRate = getPriceTrendRate(r.brand, r.model);
+
+  box.innerHTML = `
+    <div class="resale-card">
+      <p class="rc-title">Price history &amp; resale value</p>
+      <div class="rc-row"><span>Estimated original (ex-showroom) price in ${r.year}</span><b>₹${fmtINR(originalPrice)}</b></div>
+      <div class="rc-row"><span>Estimated resale value today</span><b>₹${fmtINR(r.finalValue)}</b></div>
+      <div class="rc-row"><span>Change since ${r.year} (${yearsTxt} ago)</span><b class="rc-delta ${dep.deltaAmt>=0?'pos':'neg'}">${dep.deltaAmt>=0?'+':'-'}₹${fmtINR(Math.abs(dep.deltaAmt))} (${dep.deltaPct>=0?'+':''}${dep.deltaPct.toFixed(1)}%)</b></div>
+      <div class="rc-row"><span>Annualised depreciation</span><b class="rc-delta ${dep.annualPct>=0?'pos':'neg'}">${dep.annualPct>=0?'+':''}${dep.annualPct.toFixed(1)}% / year</b></div>
+      <div class="rc-row"><span>${r.brand} ${r.model} price-trend basis</span><b>${(trendRate*100).toFixed(1)}% / year</b></div>
+    </div>`;
+}
+
+function renderAiValuationSection(){
+  aiResultCache = null;
+  $('aiResultBox').innerHTML = '';
+  renderResaleCard();
+}
+
+function buildAiPrompt(r){
+  const originalPrice = estimateOriginalPrice(r.brand, r.model, r.variant, r.year);
+  const priceHistoryLine = originalPrice
+    ? `This model's estimated ex-showroom price in ${r.year} (its registration year) was approximately ₹${Math.round(originalPrice)}.`
+    : `No historical ex-showroom pricing was available for this model.`;
+  return `You are an expert Indian used-car valuation analyst. Estimate a fair market resale price in INR for this vehicle based on the details below, and briefly comment on how the resale value compares to its original ex-showroom price.
+
+Vehicle: ${r.brand} ${r.model} ${r.variant}, registration year ${r.year}, ${r.km} km driven, ${r.owner} owner, insurance ${r.insurance}.
+Condition: engine ${r.engine}, tyres ${r.tyre}, battery ${r.battery}, interior ${r.interior}, paint ${r.paint}, accident history ${r.accident}, service history ${r.service}, keys ${r.keys}, RC available ${r.rc}, loan closed ${r.loan}.
+Market data: average price of ${r.compCount} comparable sold vehicles is ₹${Math.round(r.baseAvg)}. A rule-based engine (adjusting for condition and km) estimates this specific car at ₹${Math.round(r.finalValue)}, with a stated confidence of ${r.confidence}%.
+${priceHistoryLine}
+
+Respond with ONLY a raw JSON object (no markdown fences, no extra text) with exactly these keys:
+{"estimated_low": <number, INR>, "estimated_mid": <number, INR>, "estimated_high": <number, INR>, "confidence": <integer 0-100>, "summary": "<2-3 sentence plain-English explanation of the estimate>", "resale_commentary": "<1-2 sentences comparing the estimate to the original ex-showroom price, or empty string if unavailable>"}`;
+}
+
+async function callClaudeForValuation(apiKey, prompt){
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true"
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-6",
+      max_tokens: 600,
+      messages: [{ role: "user", content: prompt }]
+    })
+  });
+  if(!response.ok){
+    const errText = await response.text();
+    throw new Error(`API error ${response.status}: ${errText.slice(0,200)}`);
+  }
+  const data = await response.json();
+  const textBlocks = (data.content || []).filter(b=>b.type==='text').map(b=>b.text);
+  const raw = textBlocks.join('\n').trim();
+  const cleaned = raw.replace(/^```json/i,'').replace(/^```/,'').replace(/```$/,'').trim();
+  return JSON.parse(cleaned);
+}
+
+/* ---------------- State ---------------- */
+let compsCache = [];
+let regParsed = null;
+let lastReport = null;
+let aiResultCache = null;
+ 
+/* ---------------- Wizard nav ---------------- */
+function goStep(n){
+  [1,2,3,4,5,6].forEach(i=>{
+    const stepEl = $('step'+i);
+    const wasHidden = stepEl.classList.contains('hidden');
+    stepEl.classList.toggle('hidden', i!==n);
+    if(i===n && wasHidden){
+      // retrigger the card's entrance animation
+      stepEl.style.animation = 'none';
+      void stepEl.offsetWidth;
+      stepEl.style.animation = '';
+    }
+    const rail = document.querySelector(`.rail-step[data-step="${i}"]`);
+    rail.classList.toggle('active', i===n);
+    rail.classList.toggle('done', i<n);
+  });
+  const fill = $('railFill');
+  if(fill) fill.style.width = `${((n-1)/5)*100}%`;
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+/* Tactile ripple feedback on every button press */
+document.addEventListener('click', e=>{
+  const btn = e.target.closest('button');
+  if(!btn) return;
+  const rect = btn.getBoundingClientRect();
+  const size = Math.max(rect.width, rect.height) * 1.8;
+  const ripple = document.createElement('span');
+  ripple.className = 'ripple';
+  ripple.style.width = ripple.style.height = size + 'px';
+  ripple.style.left = (e.clientX - rect.left - size/2) + 'px';
+  ripple.style.top = (e.clientY - rect.top - size/2) + 'px';
+  btn.appendChild(ripple);
+  ripple.addEventListener('animationend', ()=>ripple.remove());
+});
+
+/* ---------------- Home ---------------- */
+$('startSellBtn').addEventListener('click', ()=>{
+  $('home').classList.add('hidden');
+  $('rail').classList.remove('hidden');
+  goStep(1);
+});
+ 
+/* ---------------- Wire up step 1 ---------------- */
+populateBrands();
+$('brandSel').addEventListener('change', e=>{ populateModels(e.target.value); populateVariants(); });
+$('modelSel').addEventListener('change', e=>{ populateVariants($('brandSel').value, e.target.value); });
+ 
+$('lookupBtn').addEventListener('click', async ()=>{
+  const raw = $('regInput').value.trim();
+  const parsed = parseReg(raw);
+  if(!parsed){
+    alert("That doesn't look like a valid registration number. Try a format like RJ14AB1234.");
+    return;
+  }
+  regParsed = parsed;
+  $('plateDisplay').classList.remove('hidden');
+  $('plateNum').textContent = parsed.full;
+  $('rtoState').textContent = STATE_CODES[parsed.state] || 'Not recognised — please verify manually';
+  $('rtoCode').textContent = parsed.state + parsed.code;
+
+  const statusEl = $('lookupStatus');
+  statusEl.classList.remove('hidden');
+  statusEl.textContent = 'Looking up vehicle details…';
+
+  const lookupBtnEl = $('lookupBtn');
+  lookupBtnEl.disabled = true;
+
+  try{
+    const details = await lookupVehicleByRegistration(parsed.full);
+
+    if(details.brand && CATALOG[details.brand]){
+      $('brandSel').value = details.brand;
+      populateModels(details.brand);
+    }
+    if(details.model && CATALOG[details.brand] && CATALOG[details.brand][details.model]){
+      $('modelSel').value = details.model;
+      populateVariants(details.brand, details.model);
+    }
+    if(details.fuelType){
+      const fuelOpt = Array.from($('fuelSel').options).find(o => o.value.toLowerCase() === String(details.fuelType).toLowerCase());
+      if(fuelOpt) $('fuelSel').value = fuelOpt.value;
+    }
+
+    statusEl.textContent = `Found: ${details.brand || '—'} ${details.model || ''}. Please confirm variant and other details below.`;
+  }catch(err){
+    // Most likely cause: the registration-lookup Edge Function hasn't been
+    // deployed/configured yet (see registration-lookup-edge-function.ts).
+    // The plate/state/RTO info above still works, just not the auto-filled
+    // brand/model — user can select those manually below.
+    statusEl.textContent = `Couldn't auto-fetch vehicle details (${err.message}). Please select brand/model manually below.`;
+  }finally{
+    lookupBtnEl.disabled = false;
+  }
+});
+ 
+$('toStep2').addEventListener('click', ()=>{
+  if(!$('brandSel').value || !$('modelSel').value || !$('variantSel').value){
+    alert('Please select brand, model and variant before continuing.');
+    return;
+  }
+  goStep(2);
+});
+$('backTo1').addEventListener('click', ()=>goStep(1));
+
+/* ---------------- Step 2 -> 3: find original price ---------------- */
+$('toStep3').addEventListener('click', ()=>{
+  const year = parseInt($('yearInput').value, 10);
+  if(!year || year < 1990 || year > 2026){
+    alert('Please enter a valid registration year.');
+    return;
+  }
+  renderFoundBox();
+  goStep(3);
+});
+$('backTo2').addEventListener('click', ()=>goStep(2));
+
+/* ---------------- Step 3 -> 4 ---------------- */
+$('toStep4').addEventListener('click', ()=>{
+  goStep(4);
+});
+$('backTo3').addEventListener('click', ()=>goStep(3));
+ 
+/* ---------------- Step 4 -> 5: fetch comps + compute valuation ---------------- */
+$('toStep5').addEventListener('click', async ()=>{
+  const brand = $('brandSel').value, model = $('modelSel').value, variant = $('variantSel').value;
+  const year = parseInt($('yearInput').value, 10);
+  const km = parseInt($('kmInput').value,10) || 0;
+  const owner = $('ownerSel').value;
+  const insurance = $('insSel').value;
+
+  const engine = $('engineSel').value, tyre = $('tyreSel').value, battery = $('batterySel').value;
+  const interior = $('interiorSel').value, paint = $('paintSel').value;
+  const accident = $('accidentSel').value, service = $('serviceSel').value;
+  const keys = $('keysSel').value, rc = $('rcSel').value, loan = $('loanSel').value;
+
+  $('fetchStatus').textContent = 'Searching the live database for similar sales…';
+
+  try{
+    compsCache = await findComps(brand, model, variant, year);
+  }catch(err){
+    $('fetchStatus').innerHTML = `<span style="color:var(--negative)">Could not reach the database: ${err.message}</span>`;
+    return;
+  }
+
+  if(compsCache.length===0){
+    $('fetchStatus').innerHTML = `<span style="color:var(--negative)">No comparable sales found for this brand and model yet — add records in Supabase, or pick a different model.</span>`;
+    return;
+  }
+  $('fetchStatus').textContent = '';
+
+  // Populate the comparables table (shown later in the Final Report step)
+  const body = $('compsBody');
+  body.innerHTML = '';
+  compsCache.forEach(c=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${c.brand}</td><td>${c.model}</td><td>${c.variant}</td><td>${c.year}</td><td class="num">${fmtINR(c.km)}</td><td class="num">₹${fmtINR(c.price)}</td>`;
+    body.appendChild(tr);
+  });
+  const compAvgForNote = mean(compsCache.map(c=>c.price));
+  $('compsNote').innerHTML = `Average sold price of comparables: <b>₹${fmtINR(compAvgForNote)}</b>`;
+
+  const prices = compsCache.map(c=>c.price);
+  const kms = compsCache.map(c=>c.km);
+  const baseAvg = mean(prices);
+  const avgCompKm = mean(kms);
+ 
+  // KM adjustment: 0.6% of base value per 10,000km difference vs. comp average
+  const kmPct = ((avgCompKm - km)/10000) * 0.6;
+ 
+  const lineItems = [
+    {label:`KM driven vs. comparable average (${fmtINR(km)} km)`, pct:kmPct},
+    {label:`Engine condition — ${engine}`, pct:RULES.engine[engine]},
+    {label:`Accident history — ${accident}`, pct:RULES.accident[accident]},
+    {label:`Service history — ${service}`, pct:RULES.service[service]},
+    {label:`Tyre condition — ${tyre}`, pct:RULES.tyre[tyre]},
+    {label:`Battery condition — ${battery}`, pct:RULES.battery[battery]},
+    {label:`Interior condition — ${interior}`, pct:RULES.interior[interior]},
+    {label:`Paint condition — ${paint}`, pct:RULES.paint[paint]},
+    {label:`Keys available — ${keys}`, pct:RULES.keys[keys]},
+    {label:`RC available — ${rc}`, pct:RULES.rc[rc]},
+    {label:`Loan closed — ${loan}`, pct:RULES.loan[loan]},
+    {label:`Insurance — ${insurance}`, pct:RULES.insurance[insurance]},
+    {label:`Ownership — ${owner} owner`, pct:RULES.owner[owner]},
+  ];
+ 
+  let totalDelta = 0;
+  const adjRows = $('adjRows');
+  adjRows.innerHTML = '';
+  lineItems.forEach(item=>{
+    if(Math.abs(item.pct) < 0.01) return;
+    const amt = baseAvg * (item.pct/100);
+    totalDelta += amt;
+    const row = document.createElement('div');
+    row.className = 'adj-row';
+    row.innerHTML = `<span>${item.label}</span><span class="adj-amt ${amt>=0?'pos':'neg'}">${amt>=0?'+':'-'}₹${fmtINR(Math.abs(amt))}</span>`;
+    adjRows.appendChild(row);
+  });
+ 
+  const finalValue = baseAvg + totalDelta;
+  const totalRow = document.createElement('div');
+  totalRow.className = 'adj-row total';
+  totalRow.innerHTML = `<span>Market average → Final estimate</span><span>₹${fmtINR(baseAvg)} → ₹${fmtINR(finalValue)}</span>`;
+  adjRows.appendChild(totalRow);
+ 
+  // Confidence
+  const spread = Math.max(...prices) - Math.min(...prices);
+  const spreadRatio = spread / baseAvg;
+  let confidence = 70 + Math.min(compsCache.length * 4, 20);
+  if(spreadRatio < 0.12) confidence += 6;
+  else if(spreadRatio > 0.25) confidence -= 6;
+  confidence = Math.max(55, Math.min(97, Math.round(confidence)));
+ 
+  const rangeLow = finalValue * (1 - (100-confidence)/220);
+  const rangeHigh = finalValue * (1 + (100-confidence)/220);
+ 
+  renderOdometer(finalValue);
+  $('rangeNote').textContent = `Range ₹${fmtINR(rangeLow)} – ₹${fmtINR(rangeHigh)}`;
+  drawGauge(confidence);
+  $('gaugeValue').textContent = confidence + '%';
+ 
+  countUpText($('marketValue'), baseAvg, 700);
+  countUpText($('dealerOffer'), finalValue * 0.93, 750);
+  countUpText($('sellingPrice'), finalValue * 1.05, 800);
+
+  $('aiSub').textContent = `${brand} ${model} ${variant}, ${year} · ${fmtINR(km)} km · based on ${compsCache.length} comparable sale${compsCache.length===1?'':'s'}`;
+  $('reportSub').textContent = `${brand} ${model} ${variant}, ${year} · ${fmtINR(km)} km · based on ${compsCache.length} comparable sale${compsCache.length===1?'':'s'}`;
+  $('footCompCount').textContent = compsCache.length;
+ 
+  // Condition scores
+  const scoreDefs = [
+    {name:'Engine', val:SCORE_MAP.engine[engine]},
+    {name:'Tyres', val:SCORE_MAP.tyre[tyre]},
+    {name:'Battery', val:SCORE_MAP.battery[battery]},
+    {name:'Interior', val:SCORE_MAP.interior[interior]},
+    {name:'Paint', val:SCORE_MAP.paint[paint]},
+  ];
+  const scoresEl = $('scores');
+  scoresEl.innerHTML = '';
+  scoreDefs.forEach(s=>{
+    const div = document.createElement('div');
+    div.className = 'score-box';
+    div.innerHTML = `<div class="score-name">${s.name}</div><div class="score-bar-bg"><div class="score-bar-fill" style="width:0%"></div></div><div class="score-val">${s.val}/100</div>`;
+    scoresEl.appendChild(div);
+  });
+  requestAnimationFrame(()=>{
+    scoresEl.querySelectorAll('.score-bar-fill').forEach((bar,i)=>{
+      const target = scoreDefs[i].val;
+      setTimeout(()=>{ bar.style.width = target + '%'; }, 150 + i*90);
+    });
+  });
+  const overall = Math.round(mean(scoreDefs.map(s=>s.val)));
+  $('overallBadge').innerHTML = `${overall} <small>/ 100 overall</small>`;
+ 
+  // Pros / cons
+  const pros = [];
+  const cons = [];
+  if(owner==='1st') pros.push('Single owner'); else cons.push(`${owner} owner vehicle`);
+  if(service==='Full') pros.push('Complete service history'); else if(service==='None') cons.push('No service history available');
+  if(accident==='None') pros.push('No recorded accident history'); else cons.push(`${accident} accident history reported`);
+  if(insurance==='Valid') pros.push('Insurance currently valid'); else cons.push('Insurance has expired');
+  if(rc==='Yes') pros.push('RC available'); else cons.push('RC not available');
+  if(loan==='Yes') pros.push('Loan closed, no lien on vehicle'); else cons.push('Loan not yet closed');
+  if(engine==='Excellent'||engine==='Good') pros.push(`Engine in ${engine.toLowerCase()} condition`); else cons.push(`Engine condition rated ${engine.toLowerCase()}`);
+  if(tyre==='New') pros.push('New tyres fitted'); else if(tyre==='Worn') cons.push('Tyres showing wear');
+  if(paint==='Minor Scratches') cons.push('Minor scratches on paint'); else if(paint==='Major Damage') cons.push('Major paint/body damage noted');
+  if(km > avgCompKm) cons.push(`${fmtINR(km)} km driven — above comparable average`);
+  else pros.push(`${fmtINR(km)} km driven — below comparable average`);
+ 
+  $('prosList').innerHTML = pros.map(p=>`<li><span class="tick">✓</span>${p}</li>`).join('');
+  $('consList').innerHTML = cons.map(c=>`<li><span class="cross">•</span>${c}</li>`).join('') || '<li>No significant issues flagged</li>';
+ 
+  lastReport = {
+    brand, model, variant, year, km, owner, insurance,
+    engine, tyre, battery, interior, paint, accident, service, keys, rc, loan,
+    baseAvg, avgCompKm, finalValue, confidence, rangeLow, rangeHigh,
+    compCount: compsCache.length, overall
+  };
+ 
+  renderAiValuationSection();
+  goStep(5);
+});
+$('backTo4').addEventListener('click', ()=>goStep(4));
+
+/* ---------------- Step 5 -> 6 ---------------- */
+$('toStep6').addEventListener('click', ()=>{
+  goStep(6);
+});
+$('backTo5').addEventListener('click', ()=>goStep(5));
+ 
+$('aiGenerateBtn').addEventListener('click', async ()=>{
+  const apiKey = $('aiApiKeyInput').value.trim();
+  const resultBox = $('aiResultBox');
+  if(!apiKey){
+    resultBox.innerHTML = `<div class="ai-error">Anthropic API key daaliye pehle — <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a> se le sakte hain.</div>`;
+    return;
+  }
+  if(!lastReport){
+    resultBox.innerHTML = `<div class="ai-error">Pehle valuation generate kariye.</div>`;
+    return;
+  }
+  resultBox.innerHTML = `<div class="ai-loading">Claude se AI valuation maang rahe hain…</div>`;
+  try{
+    const prompt = buildAiPrompt(lastReport);
+    const result = await callClaudeForValuation(apiKey, prompt);
+    aiResultCache = result;
+    resultBox.innerHTML = `
+      <div class="ai-card">
+        <div class="label" style="font-size:11px;text-transform:uppercase;color:var(--steel);letter-spacing:0.5px;font-weight:600;">Claude's estimate</div>
+        <div class="ai-price">₹${fmtINR(result.estimated_mid)}</div>
+        <div class="ai-range">Range ₹${fmtINR(result.estimated_low)} – ₹${fmtINR(result.estimated_high)} · Confidence ${result.confidence}%</div>
+        <div class="ai-summary">${result.summary || ''}</div>
+        ${result.resale_commentary ? `<div class="ai-summary"><b>Price history note:</b> ${result.resale_commentary}</div>` : ''}
+      </div>`;
+  }catch(err){
+    resultBox.innerHTML = `<div class="ai-error">Claude se valuation nahi mil payi: ${err.message}</div>`;
+  }
+});
+ 
+$('startOver').addEventListener('click', ()=>{
+  document.querySelectorAll('input[type=text], input[type=number]').forEach(i=>{ if(i.id!=='yearInput') i.value=''; });
+  $('yearInput').value = 2020;
+  $('kmInput').value = 42000;
+  $('plateDisplay').classList.add('hidden');
+  $('modelSel').innerHTML = '<option value="">Select model</option>';
+  $('variantSel').innerHTML = '<option value="">Select variant</option>';
+  $('brandSel').value = '';
+  compsCache = [];
+  lastReport = null;
+  aiResultCache = null;
+  $('aiResultBox').innerHTML = '';
+  $('aiApiKeyInput').value = '';
+  $('fetchStatus').textContent = '';
+  $('rail').classList.add('hidden');
+  $('home').classList.remove('hidden');
+});
+</script>
+
+<script>
+  (function(){
+    // --- Single fixed login credential — change these two values ---
+    const VALID_USER_ID = 'admin';
+    const VALID_PASSWORD = 'password123';
+
+    const loginGate = document.getElementById('loginGate');
+    const appWrap = document.getElementById('appWrap');
+    const form = document.getElementById('loginForm');
+    const emailField = document.getElementById('lgEmailField');
+    const passwordField = document.getElementById('lgPasswordField');
+    const emailInput = document.getElementById('lgEmail');
+    const passwordInput = document.getElementById('lgPassword');
+    const loginBtn = document.getElementById('lgLoginBtn');
+    const toggleEye = document.getElementById('lgToggleEye');
+    const eyeIcon = document.getElementById('lgEyeIcon');
+
+    toggleEye.addEventListener('click', () => {
+      const isPassword = passwordInput.type === 'password';
+      passwordInput.type = isPassword ? 'text' : 'password';
+      toggleEye.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+      eyeIcon.innerHTML = isPassword
+        ? '<path d="M17.94 17.94A10.94 10.94 0 0112 19c-7 0-11-7-11-7a21.8 21.8 0 015.06-6.06M9.9 4.24A10.94 10.94 0 0112 4c7 0 11 7 11 7a21.8 21.8 0 01-2.16 3.19M14.12 14.12a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>'
+        : '<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/>';
+    });
+
+    [emailInput, passwordInput].forEach(el => {
+      el.addEventListener('input', () => el.closest('.lg-field').classList.remove('error'));
+    });
+
+    function unlockApp(){
+      loginGate.classList.add('hidden');
+      appWrap.classList.remove('hidden');
+    }
+
+    // Auto-login if "Remember me" was checked last time
+    try {
+      if (localStorage.getItem('av_remember') === '1') {
+        unlockApp();
+      }
+    } catch (err) {
+      console.warn('Storage not available (remember me skipped):', err);
+    }
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      let valid = true;
+
+      if (!emailInput.value.trim()) { emailField.classList.add('error'); valid = false; }
+      else emailField.classList.remove('error');
+
+      if (!passwordInput.value.trim()) { passwordField.classList.add('error'); valid = false; }
+      else passwordField.classList.remove('error');
+
+      if (!valid) return;
+
+      loginBtn.classList.add('loading');
+      loginBtn.disabled = true;
+
+      setTimeout(() => {
+        loginBtn.classList.remove('loading');
+        loginBtn.disabled = false;
+
+        const ok = emailInput.value.trim() === VALID_USER_ID && passwordInput.value === VALID_PASSWORD;
+        if (ok) {
+          if (document.getElementById('lgRemember').checked) {
+            try { localStorage.setItem('av_remember', '1'); }
+            catch (err) { console.warn('Could not save remember-me:', err); }
+          }
+          unlockApp();
+        } else {
+          emailField.classList.add('error');
+          passwordField.classList.add('error');
+        }
+      }, 700);
+    });
+  })();
+</script>
+</body>
+</html>
